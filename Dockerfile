@@ -1,0 +1,34 @@
+# Build stage
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+WORKDIR /src
+
+# Copy csproj and restore dependencies
+COPY src/Aist.Backend/Aist.Backend.csproj src/Aist.Backend/
+RUN dotnet restore src/Aist.Backend/Aist.Backend.csproj
+
+# Copy everything else and build
+COPY src/Aist.Backend/ src/Aist.Backend/
+RUN dotnet publish src/Aist.Backend/Aist.Backend.csproj -c Release -o /app/publish
+
+# Runtime stage
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
+WORKDIR /app
+
+# Create directory for SQLite database
+RUN mkdir -p /app/data
+
+# Copy published app
+COPY --from=build /app/publish .
+
+# Expose port
+EXPOSE 8080
+
+# Set environment
+ENV ASPNETCORE_URLS=http://+:8080
+ENV ASPNETCORE_ENVIRONMENT=Production
+
+# Create volume for database persistence
+VOLUME ["/app/data"]
+
+# Entry point
+ENTRYPOINT ["dotnet", "Aist.Backend.dll"]
