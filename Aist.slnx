@@ -1,0 +1,6 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Aist.Backend/Aist.Backend.csproj" />
+    <Project Path="src/Aist.Cli/Aist.Cli.csproj" />
+  </Folder>
+</Solution>

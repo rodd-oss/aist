@@ -1,0 +1,6 @@
+@Aist.Backend_HostAddress = http://localhost:5192
+
+GET {{Aist.Backend_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
