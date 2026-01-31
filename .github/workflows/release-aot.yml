@@ -1,0 +1,127 @@
+name: Build and Release Native AOT
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version tag (e.g., v1.0.0)'
+        required: true
+        type: string
+
+env:
+  PROJECT_PATH: src/Aist.Cli/Aist.Cli.csproj
+  CLI_NAME: aist
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            runtime: linux-x64
+            arch: x64
+          - os: ubuntu-latest
+            runtime: linux-arm64
+            arch: arm64
+          - os: macos-latest
+            runtime: osx-x64
+            arch: x64
+          - os: macos-latest
+            runtime: osx-arm64
+            arch: arm64
+          - os: windows-latest
+            runtime: win-x64
+            arch: x64
+          - os: windows-latest
+            runtime: win-arm64
+            arch: arm64
+    
+    runs-on: ${{ matrix.os }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      
+      - name: Publish Native AOT
+        shell: bash
+        run: |
+          dotnet publish ${{ env.PROJECT_PATH }} \
+            -c Release \
+            -r ${{ matrix.runtime }} \
+            -p:PublishAot=true \
+            -p:PublishSingleFile=true \
+            -p:IncludeNativeLibrariesForSelfExtract=true \
+            --self-contained \
+            -o ./publish/${{ matrix.runtime }}
+      
+      - name: Prepare artifact (Unix)
+        if: matrix.os != 'windows-latest'
+        run: |
+          cd ./publish/${{ matrix.runtime }}
+          chmod +x ${{ env.CLI_NAME }}
+          tar -czf ../../${{ env.CLI_NAME }}-${{ matrix.runtime }}.tar.gz ${{ env.CLI_NAME }}
+          cd ../..
+          echo "ARTIFACT=${{ env.CLI_NAME }}-${{ matrix.runtime }}.tar.gz" >> $GITHUB_ENV
+      
+      - name: Prepare artifact (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: |
+          cd ./publish/${{ matrix.runtime }}
+          Compress-Archive -Path ${{ env.CLI_NAME }}.exe -DestinationPath ../../${{ env.CLI_NAME }}-${{ matrix.runtime }}.zip
+          cd ../..
+          echo "ARTIFACT=${{ env.CLI_NAME }}-${{ matrix.runtime }}.zip" >> $env:GITHUB_ENV
+      
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.CLI_NAME }}-${{ matrix.runtime }}
+          path: ${{ env.ARTIFACT }}
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: ./artifacts
+          pattern: ${{ env.CLI_NAME }}-*
+          merge-multiple: true
+      
+      - name: Get version
+        id: get_version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+          else
+            VERSION=${GITHUB_REF#refs/tags/}
+          fi
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          echo "Version: $VERSION"
+      
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.get_version.outputs.VERSION }}
+          name: Release ${{ steps.get_version.outputs.VERSION }}
+          draft: false
+          prerelease: ${{ contains(steps.get_version.outputs.VERSION, 'alpha') || contains(steps.get_version.outputs.VERSION, 'beta') || contains(steps.get_version.outputs.VERSION, 'rc') }}
+          files: ./artifacts/*
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

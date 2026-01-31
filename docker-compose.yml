@@ -7,7 +7,7 @@ services:
       dockerfile: Dockerfile
     container_name: aist-backend
     ports:
-      - "5001:8080"
+      - "5192:5192"
     volumes:
       - ./aist:/app/data
     environment:
@@ -15,7 +15,7 @@ services:
       - ConnectionStrings__DefaultConnection=Data Source=/app/data/main.db
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "sh", "-c", "nc -z localhost 8080 || exit 1"]
+      test: ["CMD", "curl", "-f", "http://localhost:5192/health"]
       interval: 30s
       timeout: 10s
       retries: 3

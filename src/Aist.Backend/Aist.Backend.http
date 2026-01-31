@@ -1,6 +1,14 @@
 @Aist.Backend_HostAddress = http://localhost:5192
 
-GET {{Aist.Backend_HostAddress}}/weatherforecast/
+GET {{Aist.Backend_HostAddress}}/api/projects
 Accept: application/json
 
 ###
+
+GET {{Aist.Backend_HostAddress}}/api/jobs
+Accept: application/json
+
+###
+
+GET {{Aist.Backend_HostAddress}}/health
+Accept: application/json

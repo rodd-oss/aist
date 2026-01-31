@@ -10,7 +10,7 @@ public class AistApiClient
     private static string GetBaseUrl()
     {
         var url = Environment.GetEnvironmentVariable("AIST_API_URL")
-            ?? "http://localhost:5000/api/";
+            ?? "http://localhost:5192/api/";
         // Ensure trailing slash for proper URI joining
         if (!url.EndsWith("/"))
         {
