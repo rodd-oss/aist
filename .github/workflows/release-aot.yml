@@ -49,10 +49,21 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '10.0.x'
-      
+
+      - name: Install ARM64 Cross-Compilation Toolchain
+        if: matrix.runtime == 'linux-arm64'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu
+
       - name: Publish Native AOT
         shell: bash
         run: |
+          PUBLISH_ARGS=""
+          if [[ "${{ matrix.runtime }}" == "linux-arm64" ]]; then
+            PUBLISH_ARGS="-p:CppCompilerAndLinker=clang -p:ObjCopyName=aarch64-linux-gnu-objcopy"
+          fi
+
           dotnet publish ${{ env.PROJECT_PATH }} \
             -c Release \
             -r ${{ matrix.runtime }} \
@@ -60,7 +71,8 @@ jobs:
             -p:PublishSingleFile=true \
             -p:IncludeNativeLibrariesForSelfExtract=true \
             --self-contained \
-            -o ./publish/${{ matrix.runtime }}
+            -o ./publish/${{ matrix.runtime }} \
+            $PUBLISH_ARGS
       
       - name: Prepare artifact (Unix)
         if: matrix.os != 'windows-latest'

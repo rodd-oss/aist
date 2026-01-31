@@ -3,21 +3,20 @@ using Aist.Cli.Services;
 
 namespace Aist.Cli;
 
-class Program
+internal sealed class Program
 {
-    private static readonly AistApiClient _apiClient = new();
-
     static async Task<int> Main(string[] args)
     {
+        using var apiClient = new AistApiClient();
         var rootCommand = new RootCommand("Aist - AI-assisted project management CLI");
 
-        rootCommand.AddCommand(CreateProjectCommands());
-        rootCommand.AddCommand(CreateJobCommands());
-        rootCommand.AddCommand(CreateStoryCommands());
-        rootCommand.AddCommand(CreateCriteriaCommands());
-        rootCommand.AddCommand(CreateLogCommands());
+        rootCommand.AddCommand(CreateProjectCommands(apiClient));
+        rootCommand.AddCommand(CreateJobCommands(apiClient));
+        rootCommand.AddCommand(CreateStoryCommands(apiClient));
+        rootCommand.AddCommand(CreateCriteriaCommands(apiClient));
+        rootCommand.AddCommand(CreateLogCommands(apiClient));
 
-        return await rootCommand.InvokeAsync(args);
+        return await rootCommand.InvokeAsync(args).ConfigureAwait(false);
     }
 
     private static Guid ParseGuid(string input)
@@ -29,14 +28,14 @@ class Program
         return Guid.Empty;
     }
 
-    private static Command CreateProjectCommands()
+    private static Command CreateProjectCommands(AistApiClient apiClient)
     {
         var projectCommand = new Command("project", "Manage projects");
 
         var listCommand = new Command("list", "List all projects");
         listCommand.SetHandler(async () =>
         {
-            var projects = await _apiClient.GetProjectsAsync();
+            var projects = await apiClient.GetProjectsAsync().ConfigureAwait(false);
             if (projects != null)
             {
                 if (projects.Count == 0)
@@ -59,7 +58,7 @@ class Program
         createCommand.AddOption(titleOption);
         createCommand.SetHandler(async (string title) =>
         {
-            var project = await _apiClient.CreateProjectAsync(title);
+            var project = await apiClient.CreateProjectAsync(title).ConfigureAwait(false);
             if (project != null)
             {
                 Console.WriteLine($"Created project: {project.Id} - {project.Title}");
@@ -72,7 +71,7 @@ class Program
         deleteCommand.AddOption(projectIdOption);
         deleteCommand.SetHandler(async (string id) =>
         {
-            var success = await _apiClient.DeleteProjectAsync(id);
+            var success = await apiClient.DeleteProjectAsync(id).ConfigureAwait(false);
             if (success)
             {
                 Console.WriteLine($"Deleted project: {id}");
@@ -87,7 +86,7 @@ class Program
         return projectCommand;
     }
 
-    private static Command CreateJobCommands()
+    private static Command CreateJobCommands(AistApiClient apiClient)
     {
         var jobCommand = new Command("job", "Manage jobs (features, fixes, chores)");
 
@@ -96,7 +95,7 @@ class Program
         listCommand.AddOption(projectIdOption);
         listCommand.SetHandler(async (string? projectId) =>
         {
-            var jobs = await _apiClient.GetJobsAsync(projectId);
+            var jobs = await apiClient.GetJobsAsync(projectId).ConfigureAwait(false);
             if (jobs != null)
             {
                 if (jobs.Count == 0)
@@ -144,7 +143,7 @@ class Program
                 type,
                 description
             );
-            var job = await _apiClient.CreateJobAsync(request);
+            var job = await apiClient.CreateJobAsync(request).ConfigureAwait(false);
             if (job != null)
             {
                 Console.WriteLine($"Created job: {job.Id} - {job.Title} [{job.Type}]");
@@ -157,14 +156,14 @@ class Program
         pullCommand.AddOption(pullJobIdOption);
         pullCommand.SetHandler(async (string jobId) =>
         {
-            var job = await _apiClient.GetJobAsync(jobId);
+            var job = await apiClient.GetJobAsync(jobId).ConfigureAwait(false);
             if (job == null)
             {
                 Console.WriteLine($"Job not found: {jobId}");
                 return;
             }
 
-            var success = await _apiClient.UpdateJobStatusAsync(jobId, JobStatus.InProgress);
+            var success = await apiClient.UpdateJobStatusAsync(jobId, JobStatus.InProgress).ConfigureAwait(false);
             if (success)
             {
                 Console.WriteLine($"Job {jobId} status updated to InProgress");
@@ -187,14 +186,14 @@ class Program
         doneCommand.AddOption(prDescriptionOption);
         doneCommand.SetHandler(async (string jobId, string? prTitle, string? prDescription) =>
         {
-            var job = await _apiClient.GetJobAsync(jobId);
+            var job = await apiClient.GetJobAsync(jobId).ConfigureAwait(false);
             if (job == null)
             {
                 Console.WriteLine($"Job not found: {jobId}");
                 return;
             }
 
-            var success = await _apiClient.UpdateJobStatusAsync(jobId, JobStatus.Done);
+            var success = await apiClient.UpdateJobStatusAsync(jobId, JobStatus.Done).ConfigureAwait(false);
             if (success)
             {
                 Console.WriteLine($"Job {jobId} marked as Done");
@@ -211,7 +210,7 @@ class Program
         return jobCommand;
     }
 
-    private static Command CreateStoryCommands()
+    private static Command CreateStoryCommands(AistApiClient apiClient)
     {
         var storyCommand = new Command("story", "Manage user stories");
 
@@ -220,7 +219,7 @@ class Program
         listCommand.AddOption(jobIdOption);
         listCommand.SetHandler(async (string jobId) =>
         {
-            var stories = await _apiClient.GetUserStoriesByJobAsync(jobId);
+            var stories = await apiClient.GetUserStoriesByJobAsync(jobId).ConfigureAwait(false);
             if (stories != null)
             {
                 if (stories.Count == 0)
@@ -272,7 +271,7 @@ class Program
                 why,
                 priority
             );
-            var story = await _apiClient.CreateUserStoryAsync(request);
+            var story = await apiClient.CreateUserStoryAsync(request).ConfigureAwait(false);
             if (story != null)
             {
                 Console.WriteLine($"Created user story: {story.Id} - {story.Title}");
@@ -285,7 +284,7 @@ class Program
         completeCommand.AddOption(storyIdOption);
         completeCommand.SetHandler(async (string storyId) =>
         {
-            var success = await _apiClient.UpdateUserStoryCompleteAsync(storyId, true);
+            var success = await apiClient.UpdateUserStoryCompleteAsync(storyId, true).ConfigureAwait(false);
             if (success)
             {
                 Console.WriteLine($"Marked story {storyId} as complete ✓");
@@ -300,7 +299,7 @@ class Program
         return storyCommand;
     }
 
-    private static Command CreateCriteriaCommands()
+    private static Command CreateCriteriaCommands(AistApiClient apiClient)
     {
         var criteriaCommand = new Command("criteria", "Manage acceptance criteria");
 
@@ -309,7 +308,7 @@ class Program
         listCommand.AddOption(storyIdOption);
         listCommand.SetHandler(async (string storyId) =>
         {
-            var criterias = await _apiClient.GetAcceptanceCriteriaByStoryAsync(storyId);
+            var criterias = await apiClient.GetAcceptanceCriteriaByStoryAsync(storyId).ConfigureAwait(false);
             if (criterias != null)
             {
                 if (criterias.Count == 0)
@@ -346,7 +345,7 @@ class Program
                 storyIdGuid,
                 description
             );
-            var criteria = await _apiClient.CreateAcceptanceCriteriaAsync(request);
+            var criteria = await apiClient.CreateAcceptanceCriteriaAsync(request).ConfigureAwait(false);
             if (criteria != null)
             {
                 Console.WriteLine($"Created acceptance criteria: {criteria.Id}");
@@ -359,7 +358,7 @@ class Program
         checkCommand.AddOption(checkCriteriaIdOption);
         checkCommand.SetHandler(async (string criteriaId) =>
         {
-            var success = await _apiClient.UpdateAcceptanceCriteriaAsync(criteriaId, true);
+            var success = await apiClient.UpdateAcceptanceCriteriaAsync(criteriaId, true).ConfigureAwait(false);
             if (success)
             {
                 Console.WriteLine($"Marked criteria {criteriaId} as met ✓");
@@ -376,7 +375,7 @@ class Program
         uncheckCommand.AddOption(uncheckCriteriaIdOption);
         uncheckCommand.SetHandler(async (string criteriaId) =>
         {
-            var success = await _apiClient.UpdateAcceptanceCriteriaAsync(criteriaId, false);
+            var success = await apiClient.UpdateAcceptanceCriteriaAsync(criteriaId, false).ConfigureAwait(false);
             if (success)
             {
                 Console.WriteLine($"Marked criteria {criteriaId} as unmet ✗");
@@ -391,7 +390,7 @@ class Program
         return criteriaCommand;
     }
 
-    private static Command CreateLogCommands()
+    private static Command CreateLogCommands(AistApiClient apiClient)
     {
         var logCommand = new Command("log", "Manage progress logs");
 
@@ -400,7 +399,7 @@ class Program
         listCommand.AddOption(storyIdOption);
         listCommand.SetHandler(async (string storyId) =>
         {
-            var logs = await _apiClient.GetProgressLogsByStoryAsync(storyId);
+            var logs = await apiClient.GetProgressLogsByStoryAsync(storyId).ConfigureAwait(false);
             if (logs != null)
             {
                 if (logs.Count == 0)
@@ -436,7 +435,7 @@ class Program
                 storyIdGuid,
                 text
             );
-            var log = await _apiClient.CreateProgressLogAsync(request);
+            var log = await apiClient.CreateProgressLogAsync(request).ConfigureAwait(false);
             if (log != null)
             {
                 Console.WriteLine($"Added progress log: {log.Id}");

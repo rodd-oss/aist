@@ -1,8 +1,9 @@
 using System.Net.Http.Json;
+using System.Text.Json;
 
 namespace Aist.Cli.Services;
 
-public class AistApiClient
+internal sealed class AistApiClient : IDisposable
 {
     private readonly HttpClient _httpClient;
     private static readonly string BaseUrl = GetBaseUrl();
@@ -12,7 +13,7 @@ public class AistApiClient
         var url = Environment.GetEnvironmentVariable("AIST_API_URL")
             ?? "http://localhost:5192/api/v1/";
         // Ensure trailing slash for proper URI joining
-        if (!url.EndsWith("/"))
+        if (!url.EndsWith('/'))
         {
             url += "/";
         }
@@ -30,11 +31,11 @@ public class AistApiClient
     {
         try
         {
-            return await _httpClient.GetFromJsonAsync<List<ProjectResponse>>("projects");
+            return await _httpClient.GetFromJsonAsync("projects", AistJsonContext.Default.ListProjectResponse).ConfigureAwait(false);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is HttpRequestException or JsonException)
         {
-            Console.WriteLine($"Error fetching projects: {ex}");
+            Console.WriteLine($"Error fetching projects: {ex.Message}");
             return null;
         }
     }
@@ -43,17 +44,17 @@ public class AistApiClient
     {
         try
         {
-            var response = await _httpClient.PostAsJsonAsync("projects", new { Title = title });
+            var response = await _httpClient.PostAsJsonAsync("projects", new CreateProjectRequest(title), AistJsonContext.Default.CreateProjectRequest).ConfigureAwait(false);
             if (response.IsSuccessStatusCode)
             {
-                return await response.Content.ReadFromJsonAsync<ProjectResponse>();
+                return await response.Content.ReadFromJsonAsync(AistJsonContext.Default.ProjectResponse).ConfigureAwait(false);
             }
             Console.WriteLine($"Error creating project: {response.StatusCode}");
             return null;
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is HttpRequestException or JsonException)
         {
-            Console.WriteLine($"Error creating project: {ex}");
+            Console.WriteLine($"Error creating project: {ex.Message}");
             return null;
         }
     }
@@ -62,12 +63,12 @@ public class AistApiClient
     {
         try
         {
-            var response = await _httpClient.DeleteAsync($"projects/{id}");
+            var response = await _httpClient.DeleteAsync(new Uri($"projects/{id}", UriKind.Relative)).ConfigureAwait(false);
             return response.IsSuccessStatusCode;
         }
-        catch (Exception ex)
+        catch (HttpRequestException ex)
         {
-            Console.WriteLine($"Error deleting project: {ex}");
+            Console.WriteLine($"Error deleting project: {ex.Message}");
             return false;
         }
     }
@@ -78,11 +79,11 @@ public class AistApiClient
         try
         {
             var url = projectId != null ? $"jobs?projectId={projectId}" : "jobs";
-            return await _httpClient.GetFromJsonAsync<List<JobResponse>>(url);
+            return await _httpClient.GetFromJsonAsync(url, AistJsonContext.Default.ListJobResponse).ConfigureAwait(false);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is HttpRequestException or JsonException)
         {
-            Console.WriteLine($"Error fetching jobs: {ex}");
+            Console.WriteLine($"Error fetching jobs: {ex.Message}");
             return null;
         }
     }
@@ -91,11 +92,11 @@ public class AistApiClient
     {
         try
         {
-            return await _httpClient.GetFromJsonAsync<JobResponse>($"jobs/{jobId}");
+            return await _httpClient.GetFromJsonAsync($"jobs/{jobId}", AistJsonContext.Default.JobResponse).ConfigureAwait(false);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is HttpRequestException or JsonException)
         {
-            Console.WriteLine($"Error fetching job: {ex}");
+            Console.WriteLine($"Error fetching job: {ex.Message}");
             return null;
         }
     }
@@ -104,17 +105,17 @@ public class AistApiClient
     {
         try
         {
-            var response = await _httpClient.PostAsJsonAsync("jobs", request);
+            var response = await _httpClient.PostAsJsonAsync("jobs", request, AistJsonContext.Default.CreateJobRequest).ConfigureAwait(false);
             if (response.IsSuccessStatusCode)
             {
-                return await response.Content.ReadFromJsonAsync<JobResponse>();
+                return await response.Content.ReadFromJsonAsync(AistJsonContext.Default.JobResponse).ConfigureAwait(false);
             }
             Console.WriteLine($"Error creating job: {response.StatusCode}");
             return null;
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is HttpRequestException or JsonException)
         {
-            Console.WriteLine($"Error creating job: {ex}");
+            Console.WriteLine($"Error creating job: {ex.Message}");
             return null;
         }
     }
@@ -123,12 +124,12 @@ public class AistApiClient
     {
         try
         {
-            var response = await _httpClient.PatchAsJsonAsync($"jobs/{jobId}/status", new { Status = status });
+            var response = await _httpClient.PatchAsJsonAsync($"jobs/{jobId}/status", new UpdateJobStatusRequest(status), AistJsonContext.Default.UpdateJobStatusRequest).ConfigureAwait(false);
             return response.IsSuccessStatusCode;
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is HttpRequestException or JsonException)
         {
-            Console.WriteLine($"Error updating job status: {ex}");
+            Console.WriteLine($"Error updating job status: {ex.Message}");
             return false;
         }
     }
@@ -137,12 +138,12 @@ public class AistApiClient
     {
         try
         {
-            var response = await _httpClient.DeleteAsync($"jobs/{id}");
+            var response = await _httpClient.DeleteAsync(new Uri($"jobs/{id}", UriKind.Relative)).ConfigureAwait(false);
             return response.IsSuccessStatusCode;
         }
-        catch (Exception ex)
+        catch (HttpRequestException ex)
         {
-            Console.WriteLine($"Error deleting job: {ex}");
+            Console.WriteLine($"Error deleting job: {ex.Message}");
             return false;
         }
     }
@@ -152,11 +153,11 @@ public class AistApiClient
     {
         try
         {
-            return await _httpClient.GetFromJsonAsync<List<UserStoryResponse>>($"userstories/by-job/{jobId}");
+            return await _httpClient.GetFromJsonAsync($"userstories/by-job/{jobId}", AistJsonContext.Default.ListUserStoryResponse).ConfigureAwait(false);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is HttpRequestException or JsonException)
         {
-            Console.WriteLine($"Error fetching user stories: {ex}");
+            Console.WriteLine($"Error fetching user stories: {ex.Message}");
             return null;
         }
     }
@@ -165,17 +166,17 @@ public class AistApiClient
     {
         try
         {
-            var response = await _httpClient.PostAsJsonAsync("userstories", request);
+            var response = await _httpClient.PostAsJsonAsync("userstories", request, AistJsonContext.Default.CreateUserStoryRequest).ConfigureAwait(false);
             if (response.IsSuccessStatusCode)
             {
-                return await response.Content.ReadFromJsonAsync<UserStoryResponse>();
+                return await response.Content.ReadFromJsonAsync(AistJsonContext.Default.UserStoryResponse).ConfigureAwait(false);
             }
             Console.WriteLine($"Error creating user story: {response.StatusCode}");
             return null;
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is HttpRequestException or JsonException)
         {
-            Console.WriteLine($"Error creating user story: {ex}");
+            Console.WriteLine($"Error creating user story: {ex.Message}");
             return null;
         }
     }
@@ -184,12 +185,12 @@ public class AistApiClient
     {
         try
         {
-            var response = await _httpClient.PatchAsJsonAsync($"userstories/{storyId}/complete", new { IsComplete = isComplete });
+            var response = await _httpClient.PatchAsJsonAsync($"userstories/{storyId}/complete", new UpdateUserStoryCompleteRequest(isComplete), AistJsonContext.Default.UpdateUserStoryCompleteRequest).ConfigureAwait(false);
             return response.IsSuccessStatusCode;
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is HttpRequestException or JsonException)
         {
-            Console.WriteLine($"Error updating user story: {ex}");
+            Console.WriteLine($"Error updating user story: {ex.Message}");
             return false;
         }
     }
@@ -199,11 +200,11 @@ public class AistApiClient
     {
         try
         {
-            return await _httpClient.GetFromJsonAsync<List<AcceptanceCriteriaResponse>>($"acceptancecriterias/by-story/{storyId}");
+            return await _httpClient.GetFromJsonAsync($"acceptancecriterias/by-story/{storyId}", AistJsonContext.Default.ListAcceptanceCriteriaResponse).ConfigureAwait(false);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is HttpRequestException or JsonException)
         {
-            Console.WriteLine($"Error fetching acceptance criteria: {ex}");
+            Console.WriteLine($"Error fetching acceptance criteria: {ex.Message}");
             return null;
         }
     }
@@ -212,17 +213,17 @@ public class AistApiClient
     {
         try
         {
-            var response = await _httpClient.PostAsJsonAsync("acceptancecriterias", request);
+            var response = await _httpClient.PostAsJsonAsync("acceptancecriterias", request, AistJsonContext.Default.CreateAcceptanceCriteriaRequest).ConfigureAwait(false);
             if (response.IsSuccessStatusCode)
             {
-                return await response.Content.ReadFromJsonAsync<AcceptanceCriteriaResponse>();
+                return await response.Content.ReadFromJsonAsync(AistJsonContext.Default.AcceptanceCriteriaResponse).ConfigureAwait(false);
             }
             Console.WriteLine($"Error creating acceptance criteria: {response.StatusCode}");
             return null;
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is HttpRequestException or JsonException)
         {
-            Console.WriteLine($"Error creating acceptance criteria: {ex}");
+            Console.WriteLine($"Error creating acceptance criteria: {ex.Message}");
             return null;
         }
     }
@@ -231,12 +232,12 @@ public class AistApiClient
     {
         try
         {
-            var response = await _httpClient.PatchAsJsonAsync($"acceptancecriterias/{criteriaId}", new { IsMet = isMet });
+            var response = await _httpClient.PatchAsJsonAsync($"acceptancecriterias/{criteriaId}", new UpdateAcceptanceCriteriaRequest(isMet), AistJsonContext.Default.UpdateAcceptanceCriteriaRequest).ConfigureAwait(false);
             return response.IsSuccessStatusCode;
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is HttpRequestException or JsonException)
         {
-            Console.WriteLine($"Error updating acceptance criteria: {ex}");
+            Console.WriteLine($"Error updating acceptance criteria: {ex.Message}");
             return false;
         }
     }
@@ -246,11 +247,11 @@ public class AistApiClient
     {
         try
         {
-            return await _httpClient.GetFromJsonAsync<List<ProgressLogResponse>>($"progresslogs/by-story/{storyId}");
+            return await _httpClient.GetFromJsonAsync($"progresslogs/by-story/{storyId}", AistJsonContext.Default.ListProgressLogResponse).ConfigureAwait(false);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is HttpRequestException or JsonException)
         {
-            Console.WriteLine($"Error fetching progress logs: {ex}");
+            Console.WriteLine($"Error fetching progress logs: {ex.Message}");
             return null;
         }
     }
@@ -259,42 +260,51 @@ public class AistApiClient
     {
         try
         {
-            var response = await _httpClient.PostAsJsonAsync("progresslogs", request);
+            var response = await _httpClient.PostAsJsonAsync("progresslogs", request, AistJsonContext.Default.CreateProgressLogRequest).ConfigureAwait(false);
             if (response.IsSuccessStatusCode)
             {
-                return await response.Content.ReadFromJsonAsync<ProgressLogResponse>();
+                return await response.Content.ReadFromJsonAsync(AistJsonContext.Default.ProgressLogResponse).ConfigureAwait(false);
             }
             Console.WriteLine($"Error creating progress log: {response.StatusCode}");
             return null;
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is HttpRequestException or JsonException)
         {
-            Console.WriteLine($"Error creating progress log: {ex}");
+            Console.WriteLine($"Error creating progress log: {ex.Message}");
             return null;
         }
+    }
+
+    public void Dispose()
+    {
+        _httpClient.Dispose();
     }
 }
 
 // DTOs
-public record ProjectResponse(Guid Id, string Title, DateTime CreatedAt);
-public record CreateJobRequest(Guid ProjectId, string ShortSlug, string Title, JobType Type, string Description);
-public record JobResponse(Guid Id, Guid ProjectId, string ShortSlug, string Title, JobStatus Status, JobType Type, string Description, DateTime CreatedAt, List<UserStorySummaryResponse>? UserStories);
-public record UserStorySummaryResponse(Guid Id, string Title, int Priority, bool IsComplete);
-public record UserStoryResponse(Guid Id, Guid JobId, string Title, string Who, string What, string Why, int Priority, bool IsComplete, DateTime CreatedAt, List<AcceptanceCriteriaResponse>? AcceptanceCriterias, List<ProgressLogResponse>? ProgressLogs);
-public record CreateUserStoryRequest(Guid JobId, string Title, string Who, string What, string Why, int Priority);
-public record AcceptanceCriteriaResponse(Guid Id, Guid UserStoryId, string Description, bool IsMet);
-public record CreateAcceptanceCriteriaRequest(Guid UserStoryId, string Description);
-public record ProgressLogResponse(Guid Id, Guid UserStoryId, string Text, DateTime CreatedAt);
-public record CreateProgressLogRequest(Guid UserStoryId, string Text);
+internal sealed record ProjectResponse(Guid Id, string Title, DateTime CreatedAt);
+internal sealed record CreateProjectRequest(string Title);
+internal sealed record CreateJobRequest(Guid ProjectId, string ShortSlug, string Title, JobType Type, string Description);
+internal sealed record UpdateJobStatusRequest(JobStatus Status);
+internal sealed record JobResponse(Guid Id, Guid ProjectId, string ShortSlug, string Title, JobStatus Status, JobType Type, string Description, DateTime CreatedAt, IReadOnlyCollection<UserStorySummaryResponse>? UserStories);
+internal sealed record UserStorySummaryResponse(Guid Id, string Title, int Priority, bool IsComplete);
+internal sealed record UserStoryResponse(Guid Id, Guid JobId, string Title, string Who, string What, string Why, int Priority, bool IsComplete, DateTime CreatedAt, IReadOnlyCollection<AcceptanceCriteriaResponse>? AcceptanceCriterias, IReadOnlyCollection<ProgressLogResponse>? ProgressLogs);
+internal sealed record CreateUserStoryRequest(Guid JobId, string Title, string Who, string What, string Why, int Priority);
+internal sealed record UpdateUserStoryCompleteRequest(bool IsComplete);
+internal sealed record AcceptanceCriteriaResponse(Guid Id, Guid UserStoryId, string Description, bool IsMet);
+internal sealed record CreateAcceptanceCriteriaRequest(Guid UserStoryId, string Description);
+internal sealed record UpdateAcceptanceCriteriaRequest(bool IsMet);
+internal sealed record ProgressLogResponse(Guid Id, Guid UserStoryId, string Text, DateTime CreatedAt);
+internal sealed record CreateProgressLogRequest(Guid UserStoryId, string Text);
 
-public enum JobStatus
+internal enum JobStatus
 {
     Todo,
     InProgress,
     Done
 }
 
-public enum JobType
+internal enum JobType
 {
     Feature,
     Fix,
@@ -303,3 +313,4 @@ public enum JobType
     Fmt,
     Doc
 }
+
