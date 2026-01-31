@@ -1,14 +1,14 @@
 @Aist.Backend_HostAddress = http://localhost:5192
 
-GET {{Aist.Backend_HostAddress}}/api/projects
+GET {{Aist.Backend_HostAddress}}/api/v1/projects
 Accept: application/json
 
 ###
 
-GET {{Aist.Backend_HostAddress}}/api/jobs
+GET {{Aist.Backend_HostAddress}}/api/v1/jobs
 Accept: application/json
 
 ###
 
-GET {{Aist.Backend_HostAddress}}/health
+GET {{Aist.Backend_HostAddress}}/api/health
 Accept: application/json

@@ -1,13 +1,15 @@
 using Aist.Backend.Data;
 using Aist.Backend.Dtos;
 using Aist.Backend.Models;
+using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace Aist.Backend.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[ApiVersion("1.0")]
+[Route("api/v{version:apiVersion}/[controller]")]
 public class ProgressLogsController : ControllerBase
 {
     private readonly AistDbContext _context;
