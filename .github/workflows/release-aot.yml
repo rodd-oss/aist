@@ -50,17 +50,14 @@ jobs:
         with:
           dotnet-version: '10.0.x'
 
-      - name: Install ARM64 Cross-Compilation Toolchain
-        if: matrix.runtime == 'linux-arm64'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y clang gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu
-
       - name: Publish Native AOT
         shell: bash
         run: |
           PUBLISH_ARGS=""
           if [[ "${{ matrix.runtime }}" == "linux-arm64" ]]; then
+            # Install specific dependencies for ARM64 cross-linking
+            sudo apt-get update
+            sudo apt-get install -y gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu zlib1g-dev:amd64
             PUBLISH_ARGS="-p:CppCompilerAndLinker=clang -p:ObjCopyName=aarch64-linux-gnu-objcopy"
           fi
 
@@ -73,22 +70,37 @@ jobs:
             --self-contained \
             -o ./publish/${{ matrix.runtime }} \
             $PUBLISH_ARGS
-      
+
       - name: Prepare artifact (Unix)
         if: matrix.os != 'windows-latest'
         run: |
           cd ./publish/${{ matrix.runtime }}
-          chmod +x ${{ env.CLI_NAME }}
-          tar -czf ../../${{ env.CLI_NAME }}-${{ matrix.runtime }}.tar.gz ${{ env.CLI_NAME }}
+          # Use a glob to find the executable in case of case-sensitivity or unexpected naming
+          BINARY_NAME=$(find . -maxdepth 1 -type f -executable | head -n 1 | sed 's|^\./||')
+          if [ -z "$BINARY_NAME" ]; then
+            echo "Error: Native binary not found in $(pwd)"
+            ls -R
+            exit 1
+          fi
+          echo "Found binary: $BINARY_NAME"
+          chmod +x "$BINARY_NAME"
+          tar -czf "../../${{ env.CLI_NAME }}-${{ matrix.runtime }}.tar.gz" "$BINARY_NAME"
           cd ../..
           echo "ARTIFACT=${{ env.CLI_NAME }}-${{ matrix.runtime }}.tar.gz" >> $GITHUB_ENV
-      
+
       - name: Prepare artifact (Windows)
         if: matrix.os == 'windows-latest'
         shell: pwsh
         run: |
           cd ./publish/${{ matrix.runtime }}
-          Compress-Archive -Path ${{ env.CLI_NAME }}.exe -DestinationPath ../../${{ env.CLI_NAME }}-${{ matrix.runtime }}.zip
+          $binary = Get-ChildItem -File | Where-Object { $_.Extension -eq ".exe" } | Select-Object -First 1
+          if ($null -eq $binary) {
+            Write-Error "Error: Native binary (.exe) not found in $(Get-Location)"
+            ls -R
+            exit 1
+          }
+          Write-Host "Found binary: $($binary.Name)"
+          Compress-Archive -Path $binary.Name -DestinationPath ../../${{ env.CLI_NAME }}-${{ matrix.runtime }}.zip
           cd ../..
           echo "ARTIFACT=${{ env.CLI_NAME }}-${{ matrix.runtime }}.zip" >> $env:GITHUB_ENV
       
