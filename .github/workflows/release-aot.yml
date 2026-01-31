@@ -75,15 +75,21 @@ jobs:
         if: matrix.os != 'windows-latest'
         run: |
           cd ./publish/${{ matrix.runtime }}
-          # Use a glob to find the executable in case of case-sensitivity or unexpected naming
-          BINARY_NAME=$(find . -maxdepth 1 -type f -executable | head -n 1 | sed 's|^\./||')
+          # Determine binary name: prioritize CLI_NAME, then any executable file
+          if [ -x "${{ env.CLI_NAME }}" ]; then
+            BINARY_NAME="${{ env.CLI_NAME }}"
+          else
+            # Portable way to find an executable file in the current directory
+            BINARY_NAME=$(find . -maxdepth 1 -type f | while read -r f; do [ -x "$f" ] && echo "${f#./}" && break; done)
+          fi
+
           if [ -z "$BINARY_NAME" ]; then
             echo "Error: Native binary not found in $(pwd)"
-            ls -R
+            ls -la
             exit 1
           fi
+          
           echo "Found binary: $BINARY_NAME"
-          chmod +x "$BINARY_NAME"
           tar -czf "../../${{ env.CLI_NAME }}-${{ matrix.runtime }}.tar.gz" "$BINARY_NAME"
           cd ../..
           echo "ARTIFACT=${{ env.CLI_NAME }}-${{ matrix.runtime }}.tar.gz" >> $GITHUB_ENV
