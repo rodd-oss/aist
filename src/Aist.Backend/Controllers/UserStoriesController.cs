@@ -1,6 +1,6 @@
 using Aist.Backend.Data;
-using Aist.Backend.Dtos;
 using Aist.Backend.Models;
+using Aist.Shared;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -81,7 +81,7 @@ public class UserStoriesController : ControllerBase
     }
 
     [HttpPatch("{id}/complete")]
-    public async Task<IActionResult> UpdateStoryCompleteStatus(Guid id, UserStoryCompleteRequest request)
+    public async Task<IActionResult> UpdateStoryCompleteStatus(Guid id, UpdateUserStoryCompleteRequest request)
     {
         var story = await _context.UserStories.FindAsync(id);
 

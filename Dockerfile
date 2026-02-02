@@ -3,10 +3,12 @@ FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
 # Copy csproj and restore dependencies
+COPY src/Aist.Shared/Aist.Shared.csproj src/Aist.Shared/
 COPY src/Aist.Backend/Aist.Backend.csproj src/Aist.Backend/
 RUN dotnet restore src/Aist.Backend/Aist.Backend.csproj
 
 # Copy everything else and build
+COPY src/Aist.Shared/ src/Aist.Shared/
 COPY src/Aist.Backend/ src/Aist.Backend/
 RUN dotnet publish src/Aist.Backend/Aist.Backend.csproj -c Release -o /app/publish
 

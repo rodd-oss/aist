@@ -1,5 +1,8 @@
 using System.CommandLine;
 using Aist.Cli.Services;
+using Aist.Cli.UI;
+using Aist.Shared;
+using Spectre.Console;
 
 namespace Aist.Cli;
 
@@ -15,8 +18,20 @@ internal sealed class Program
         rootCommand.AddCommand(CreateStoryCommands(apiClient));
         rootCommand.AddCommand(CreateCriteriaCommands(apiClient));
         rootCommand.AddCommand(CreateLogCommands(apiClient));
+        rootCommand.AddCommand(CreateUiCommand(apiClient));
 
         return await rootCommand.InvokeAsync(args).ConfigureAwait(false);
+    }
+
+    private static Command CreateUiCommand(AistApiClient apiClient)
+    {
+        var uiCommand = new Command("ui", "Start the Kanban TUI");
+        uiCommand.SetHandler(async () =>
+        {
+            var board = new KanbanBoard(apiClient);
+            await board.RunAsync().ConfigureAwait(false);
+        });
+        return uiCommand;
     }
 
     private static Guid ParseGuid(string input)
@@ -40,13 +55,13 @@ internal sealed class Program
             {
                 if (projects.Count == 0)
                 {
-                    Console.WriteLine("No projects found.");
+                    AnsiConsole.WriteLine("No projects found.");
                 }
                 else
                 {
                     foreach (var project in projects)
                     {
-                        Console.WriteLine($"{project.Id} - {project.Title} (Created: {project.CreatedAt:yyyy-MM-dd})");
+                        AnsiConsole.WriteLine($"{project.Id} - {project.Title} (Created: {project.CreatedAt:yyyy-MM-dd})");
                     }
                 }
             }
@@ -61,7 +76,7 @@ internal sealed class Program
             var project = await apiClient.CreateProjectAsync(title).ConfigureAwait(false);
             if (project != null)
             {
-                Console.WriteLine($"Created project: {project.Id} - {project.Title}");
+                AnsiConsole.WriteLine($"Created project: {project.Id} - {project.Title}");
             }
         }, titleOption);
         projectCommand.AddCommand(createCommand);
@@ -74,11 +89,11 @@ internal sealed class Program
             var success = await apiClient.DeleteProjectAsync(id).ConfigureAwait(false);
             if (success)
             {
-                Console.WriteLine($"Deleted project: {id}");
+                AnsiConsole.WriteLine($"Deleted project: {id}");
             }
             else
             {
-                Console.WriteLine($"Failed to delete project: {id}");
+                AnsiConsole.WriteLine($"Failed to delete project: {id}");
             }
         }, projectIdOption);
         projectCommand.AddCommand(deleteCommand);
@@ -100,13 +115,13 @@ internal sealed class Program
             {
                 if (jobs.Count == 0)
                 {
-                    Console.WriteLine("No jobs found.");
+                    AnsiConsole.WriteLine("No jobs found.");
                 }
                 else
                 {
                     foreach (var job in jobs)
                     {
-                        Console.WriteLine($"{job.Id} [{job.Status}] {job.Type}: {job.Title} (Slug: {job.ShortSlug})");
+                        AnsiConsole.WriteLine($"{job.Id} [{job.Status}] {job.Type}: {job.Title} (Slug: {job.ShortSlug})");
                     }
                 }
             }
@@ -132,7 +147,7 @@ internal sealed class Program
             var projectIdGuid = ParseGuid(projectId);
             if (projectIdGuid == Guid.Empty)
             {
-                Console.WriteLine($"Error: Invalid project ID format: '{projectId}'. Expected a valid GUID.");
+                AnsiConsole.WriteLine($"Error: Invalid project ID format: '{projectId}'. Expected a valid GUID.");
                 Environment.Exit(1);
                 return;
             }
@@ -146,7 +161,7 @@ internal sealed class Program
             var job = await apiClient.CreateJobAsync(request).ConfigureAwait(false);
             if (job != null)
             {
-                Console.WriteLine($"Created job: {job.Id} - {job.Title} [{job.Type}]");
+                AnsiConsole.WriteLine($"Created job: {job.Id} - {job.Title} [{job.Type}]");
             }
         }, createProjectIdOption, typeOption, titleOption, descriptionOption, slugOption);
         jobCommand.AddCommand(createCommand);
@@ -159,20 +174,20 @@ internal sealed class Program
             var job = await apiClient.GetJobAsync(jobId).ConfigureAwait(false);
             if (job == null)
             {
-                Console.WriteLine($"Job not found: {jobId}");
+                AnsiConsole.WriteLine($"Job not found: {jobId}");
                 return;
             }
 
             var success = await apiClient.UpdateJobStatusAsync(jobId, JobStatus.InProgress).ConfigureAwait(false);
             if (success)
             {
-                Console.WriteLine($"Job {jobId} status updated to InProgress");
-                Console.WriteLine($"Suggested branch name: {jobId}_{job.ShortSlug}");
-                Console.WriteLine("Note: Git branch creation not yet implemented.");
+                AnsiConsole.WriteLine($"Job {jobId} status updated to InProgress");
+                AnsiConsole.WriteLine($"Suggested branch name: {jobId}_{job.ShortSlug}");
+                AnsiConsole.WriteLine("Note: Git branch creation not yet implemented.");
             }
             else
             {
-                Console.WriteLine($"Failed to update job status: {jobId}");
+                AnsiConsole.WriteLine($"Failed to update job status: {jobId}");
             }
         }, pullJobIdOption);
         jobCommand.AddCommand(pullCommand);
@@ -189,20 +204,20 @@ internal sealed class Program
             var job = await apiClient.GetJobAsync(jobId).ConfigureAwait(false);
             if (job == null)
             {
-                Console.WriteLine($"Job not found: {jobId}");
+                AnsiConsole.WriteLine($"Job not found: {jobId}");
                 return;
             }
 
             var success = await apiClient.UpdateJobStatusAsync(jobId, JobStatus.Done).ConfigureAwait(false);
             if (success)
             {
-                Console.WriteLine($"Job {jobId} marked as Done");
-                Console.WriteLine($"PR Title: {prTitle ?? job.Title}");
-                Console.WriteLine("Note: PR creation not yet implemented.");
+                AnsiConsole.WriteLine($"Job {jobId} marked as Done");
+                AnsiConsole.WriteLine($"PR Title: {prTitle ?? job.Title}");
+                AnsiConsole.WriteLine("Note: PR creation not yet implemented.");
             }
             else
             {
-                Console.WriteLine($"Failed to mark job as done: {jobId}");
+                AnsiConsole.WriteLine($"Failed to mark job as done: {jobId}");
             }
         }, doneJobIdOption, prTitleOption, prDescriptionOption);
         jobCommand.AddCommand(doneCommand);
@@ -224,15 +239,15 @@ internal sealed class Program
             {
                 if (stories.Count == 0)
                 {
-                    Console.WriteLine("No stories found for this job.");
+                    AnsiConsole.WriteLine("No stories found for this job.");
                 }
                 else
                 {
                     foreach (var story in stories.OrderBy(s => s.Priority))
                     {
                         var status = story.IsComplete ? "[✓]" : "[ ]";
-                        Console.WriteLine($"{status} Priority {story.Priority}: {story.Title} ({story.Id})");
-                        Console.WriteLine($"    As a {story.Who}, I want {story.What}, so that {story.Why}");
+                        AnsiConsole.WriteLine($"{status} Priority {story.Priority}: {story.Title} ({story.Id})");
+                        AnsiConsole.WriteLine($"    As a {story.Who}, I want {story.What}, so that {story.Why}");
                     }
                 }
             }
@@ -259,7 +274,7 @@ internal sealed class Program
             var jobIdGuid = ParseGuid(jobId);
             if (jobIdGuid == Guid.Empty)
             {
-                Console.WriteLine($"Error: Invalid job ID format: '{jobId}'. Expected a valid GUID.");
+                AnsiConsole.WriteLine($"Error: Invalid job ID format: '{jobId}'. Expected a valid GUID.");
                 Environment.Exit(1);
                 return;
             }
@@ -274,7 +289,7 @@ internal sealed class Program
             var story = await apiClient.CreateUserStoryAsync(request).ConfigureAwait(false);
             if (story != null)
             {
-                Console.WriteLine($"Created user story: {story.Id} - {story.Title}");
+                AnsiConsole.WriteLine($"Created user story: {story.Id} - {story.Title}");
             }
         }, createJobIdOption, titleOption, whoOption, whatOption, whyOption, priorityOption);
         storyCommand.AddCommand(createCommand);
@@ -287,11 +302,11 @@ internal sealed class Program
             var success = await apiClient.UpdateUserStoryCompleteAsync(storyId, true).ConfigureAwait(false);
             if (success)
             {
-                Console.WriteLine($"Marked story {storyId} as complete ✓");
+                AnsiConsole.WriteLine($"Marked story {storyId} as complete ✓");
             }
             else
             {
-                Console.WriteLine($"Failed to mark story as complete: {storyId}");
+                AnsiConsole.WriteLine($"Failed to mark story as complete: {storyId}");
             }
         }, storyIdOption);
         storyCommand.AddCommand(completeCommand);
@@ -313,14 +328,14 @@ internal sealed class Program
             {
                 if (criterias.Count == 0)
                 {
-                    Console.WriteLine("No acceptance criteria found for this story.");
+                    AnsiConsole.WriteLine("No acceptance criteria found for this story.");
                 }
                 else
                 {
                     foreach (var criteria in criterias)
                     {
                         var status = criteria.IsMet ? "[✓]" : "[ ]";
-                        Console.WriteLine($"{status} {criteria.Description} ({criteria.Id})");
+                        AnsiConsole.WriteLine($"{status} {criteria.Description} ({criteria.Id})");
                     }
                 }
             }
@@ -337,7 +352,7 @@ internal sealed class Program
             var storyIdGuid = ParseGuid(storyId);
             if (storyIdGuid == Guid.Empty)
             {
-                Console.WriteLine($"Error: Invalid story ID format: '{storyId}'. Expected a valid GUID.");
+                AnsiConsole.WriteLine($"Error: Invalid story ID format: '{storyId}'. Expected a valid GUID.");
                 Environment.Exit(1);
                 return;
             }
@@ -348,7 +363,7 @@ internal sealed class Program
             var criteria = await apiClient.CreateAcceptanceCriteriaAsync(request).ConfigureAwait(false);
             if (criteria != null)
             {
-                Console.WriteLine($"Created acceptance criteria: {criteria.Id}");
+                AnsiConsole.WriteLine($"Created acceptance criteria: {criteria.Id}");
             }
         }, createStoryIdOption, descriptionOption);
         criteriaCommand.AddCommand(createCommand);
@@ -361,11 +376,11 @@ internal sealed class Program
             var success = await apiClient.UpdateAcceptanceCriteriaAsync(criteriaId, true).ConfigureAwait(false);
             if (success)
             {
-                Console.WriteLine($"Marked criteria {criteriaId} as met ✓");
+                AnsiConsole.WriteLine($"Marked criteria {criteriaId} as met ✓");
             }
             else
             {
-                Console.WriteLine($"Failed to mark criteria as met: {criteriaId}");
+                AnsiConsole.WriteLine($"Failed to mark criteria as met: {criteriaId}");
             }
         }, checkCriteriaIdOption);
         criteriaCommand.AddCommand(checkCommand);
@@ -378,11 +393,11 @@ internal sealed class Program
             var success = await apiClient.UpdateAcceptanceCriteriaAsync(criteriaId, false).ConfigureAwait(false);
             if (success)
             {
-                Console.WriteLine($"Marked criteria {criteriaId} as unmet ✗");
+                AnsiConsole.WriteLine($"Marked criteria {criteriaId} as unmet ✗");
             }
             else
             {
-                Console.WriteLine($"Failed to mark criteria as unmet: {criteriaId}");
+                AnsiConsole.WriteLine($"Failed to mark criteria as unmet: {criteriaId}");
             }
         }, uncheckCriteriaIdOption);
         criteriaCommand.AddCommand(uncheckCommand);
@@ -404,13 +419,13 @@ internal sealed class Program
             {
                 if (logs.Count == 0)
                 {
-                    Console.WriteLine("No progress logs found for this story.");
+                    AnsiConsole.WriteLine("No progress logs found for this story.");
                 }
                 else
                 {
                     foreach (var log in logs.OrderByDescending(l => l.CreatedAt))
                     {
-                        Console.WriteLine($"[{log.CreatedAt:yyyy-MM-dd HH:mm}] {log.Text}");
+                        AnsiConsole.WriteLine($"[{log.CreatedAt:yyyy-MM-dd HH:mm}] {log.Text}");
                     }
                 }
             }
@@ -427,7 +442,7 @@ internal sealed class Program
             var storyIdGuid = ParseGuid(storyId);
             if (storyIdGuid == Guid.Empty)
             {
-                Console.WriteLine($"Error: Invalid story ID format: '{storyId}'. Expected a valid GUID.");
+                AnsiConsole.WriteLine($"Error: Invalid story ID format: '{storyId}'. Expected a valid GUID.");
                 Environment.Exit(1);
                 return;
             }
@@ -438,7 +453,7 @@ internal sealed class Program
             var log = await apiClient.CreateProgressLogAsync(request).ConfigureAwait(false);
             if (log != null)
             {
-                Console.WriteLine($"Added progress log: {log.Id}");
+                AnsiConsole.WriteLine($"Added progress log: {log.Id}");
             }
         }, addStoryIdOption, textOption);
         logCommand.AddCommand(addCommand);

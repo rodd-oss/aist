@@ -1,5 +1,6 @@
 using System.Net.Http.Json;
 using System.Text.Json;
+using Aist.Shared;
 
 namespace Aist.Cli.Services;
 
@@ -35,7 +36,7 @@ internal sealed class AistApiClient : IDisposable
         }
         catch (Exception ex) when (ex is HttpRequestException or JsonException)
         {
-            Console.WriteLine($"Error fetching projects: {ex.Message}");
+            await Console.Error.WriteLineAsync($"Error fetching projects: {ex.Message}").ConfigureAwait(false);
             return null;
         }
     }
@@ -49,12 +50,12 @@ internal sealed class AistApiClient : IDisposable
             {
                 return await response.Content.ReadFromJsonAsync(AistJsonContext.Default.ProjectResponse).ConfigureAwait(false);
             }
-            Console.WriteLine($"Error creating project: {response.StatusCode}");
+            await Console.Error.WriteLineAsync($"Error creating project: {response.StatusCode}").ConfigureAwait(false);
             return null;
         }
         catch (Exception ex) when (ex is HttpRequestException or JsonException)
         {
-            Console.WriteLine($"Error creating project: {ex.Message}");
+            await Console.Error.WriteLineAsync($"Error creating project: {ex.Message}").ConfigureAwait(false);
             return null;
         }
     }
@@ -68,7 +69,7 @@ internal sealed class AistApiClient : IDisposable
         }
         catch (HttpRequestException ex)
         {
-            Console.WriteLine($"Error deleting project: {ex.Message}");
+            await Console.Error.WriteLineAsync($"Error deleting project: {ex.Message}").ConfigureAwait(false);
             return false;
         }
     }
@@ -83,7 +84,7 @@ internal sealed class AistApiClient : IDisposable
         }
         catch (Exception ex) when (ex is HttpRequestException or JsonException)
         {
-            Console.WriteLine($"Error fetching jobs: {ex.Message}");
+            await Console.Error.WriteLineAsync($"Error fetching jobs: {ex.Message}").ConfigureAwait(false);
             return null;
         }
     }
@@ -96,7 +97,7 @@ internal sealed class AistApiClient : IDisposable
         }
         catch (Exception ex) when (ex is HttpRequestException or JsonException)
         {
-            Console.WriteLine($"Error fetching job: {ex.Message}");
+            await Console.Error.WriteLineAsync($"Error fetching job: {ex.Message}").ConfigureAwait(false);
             return null;
         }
     }
@@ -110,12 +111,12 @@ internal sealed class AistApiClient : IDisposable
             {
                 return await response.Content.ReadFromJsonAsync(AistJsonContext.Default.JobResponse).ConfigureAwait(false);
             }
-            Console.WriteLine($"Error creating job: {response.StatusCode}");
+            await Console.Error.WriteLineAsync($"Error creating job: {response.StatusCode}").ConfigureAwait(false);
             return null;
         }
         catch (Exception ex) when (ex is HttpRequestException or JsonException)
         {
-            Console.WriteLine($"Error creating job: {ex.Message}");
+            await Console.Error.WriteLineAsync($"Error creating job: {ex.Message}").ConfigureAwait(false);
             return null;
         }
     }
@@ -129,7 +130,21 @@ internal sealed class AistApiClient : IDisposable
         }
         catch (Exception ex) when (ex is HttpRequestException or JsonException)
         {
-            Console.WriteLine($"Error updating job status: {ex.Message}");
+            await Console.Error.WriteLineAsync($"Error updating job status: {ex.Message}").ConfigureAwait(false);
+            return false;
+        }
+    }
+
+    public async Task<bool> UpdateJobAsync(string jobId, UpdateJobRequest request)
+    {
+        try
+        {
+            var response = await _httpClient.PutAsJsonAsync($"jobs/{jobId}", request, AistJsonContext.Default.UpdateJobRequest).ConfigureAwait(false);
+            return response.IsSuccessStatusCode;
+        }
+        catch (Exception ex) when (ex is HttpRequestException or JsonException)
+        {
+            await Console.Error.WriteLineAsync($"Error updating job: {ex.Message}").ConfigureAwait(false);
             return false;
         }
     }
@@ -143,7 +158,7 @@ internal sealed class AistApiClient : IDisposable
         }
         catch (HttpRequestException ex)
         {
-            Console.WriteLine($"Error deleting job: {ex.Message}");
+            await Console.Error.WriteLineAsync($"Error deleting job: {ex.Message}").ConfigureAwait(false);
             return false;
         }
     }
@@ -157,7 +172,7 @@ internal sealed class AistApiClient : IDisposable
         }
         catch (Exception ex) when (ex is HttpRequestException or JsonException)
         {
-            Console.WriteLine($"Error fetching user stories: {ex.Message}");
+            await Console.Error.WriteLineAsync($"Error fetching user stories: {ex.Message}").ConfigureAwait(false);
             return null;
         }
     }
@@ -171,12 +186,12 @@ internal sealed class AistApiClient : IDisposable
             {
                 return await response.Content.ReadFromJsonAsync(AistJsonContext.Default.UserStoryResponse).ConfigureAwait(false);
             }
-            Console.WriteLine($"Error creating user story: {response.StatusCode}");
+            await Console.Error.WriteLineAsync($"Error creating user story: {response.StatusCode}").ConfigureAwait(false);
             return null;
         }
         catch (Exception ex) when (ex is HttpRequestException or JsonException)
         {
-            Console.WriteLine($"Error creating user story: {ex.Message}");
+            await Console.Error.WriteLineAsync($"Error creating user story: {ex.Message}").ConfigureAwait(false);
             return null;
         }
     }
@@ -190,7 +205,7 @@ internal sealed class AistApiClient : IDisposable
         }
         catch (Exception ex) when (ex is HttpRequestException or JsonException)
         {
-            Console.WriteLine($"Error updating user story: {ex.Message}");
+            await Console.Error.WriteLineAsync($"Error updating user story: {ex.Message}").ConfigureAwait(false);
             return false;
         }
     }
@@ -204,7 +219,7 @@ internal sealed class AistApiClient : IDisposable
         }
         catch (Exception ex) when (ex is HttpRequestException or JsonException)
         {
-            Console.WriteLine($"Error fetching acceptance criteria: {ex.Message}");
+            await Console.Error.WriteLineAsync($"Error fetching acceptance criteria: {ex.Message}").ConfigureAwait(false);
             return null;
         }
     }
@@ -218,12 +233,12 @@ internal sealed class AistApiClient : IDisposable
             {
                 return await response.Content.ReadFromJsonAsync(AistJsonContext.Default.AcceptanceCriteriaResponse).ConfigureAwait(false);
             }
-            Console.WriteLine($"Error creating acceptance criteria: {response.StatusCode}");
+            await Console.Error.WriteLineAsync($"Error creating acceptance criteria: {response.StatusCode}").ConfigureAwait(false);
             return null;
         }
         catch (Exception ex) when (ex is HttpRequestException or JsonException)
         {
-            Console.WriteLine($"Error creating acceptance criteria: {ex.Message}");
+            await Console.Error.WriteLineAsync($"Error creating acceptance criteria: {ex.Message}").ConfigureAwait(false);
             return null;
         }
     }
@@ -237,7 +252,7 @@ internal sealed class AistApiClient : IDisposable
         }
         catch (Exception ex) when (ex is HttpRequestException or JsonException)
         {
-            Console.WriteLine($"Error updating acceptance criteria: {ex.Message}");
+            await Console.Error.WriteLineAsync($"Error updating acceptance criteria: {ex.Message}").ConfigureAwait(false);
             return false;
         }
     }
@@ -251,7 +266,7 @@ internal sealed class AistApiClient : IDisposable
         }
         catch (Exception ex) when (ex is HttpRequestException or JsonException)
         {
-            Console.WriteLine($"Error fetching progress logs: {ex.Message}");
+            await Console.Error.WriteLineAsync($"Error fetching progress logs: {ex.Message}").ConfigureAwait(false);
             return null;
         }
     }
@@ -265,12 +280,12 @@ internal sealed class AistApiClient : IDisposable
             {
                 return await response.Content.ReadFromJsonAsync(AistJsonContext.Default.ProgressLogResponse).ConfigureAwait(false);
             }
-            Console.WriteLine($"Error creating progress log: {response.StatusCode}");
+            await Console.Error.WriteLineAsync($"Error creating progress log: {response.StatusCode}").ConfigureAwait(false);
             return null;
         }
         catch (Exception ex) when (ex is HttpRequestException or JsonException)
         {
-            Console.WriteLine($"Error creating progress log: {ex.Message}");
+            await Console.Error.WriteLineAsync($"Error creating progress log: {ex.Message}").ConfigureAwait(false);
             return null;
         }
     }
@@ -280,37 +295,3 @@ internal sealed class AistApiClient : IDisposable
         _httpClient.Dispose();
     }
 }
-
-// DTOs
-internal sealed record ProjectResponse(Guid Id, string Title, DateTime CreatedAt);
-internal sealed record CreateProjectRequest(string Title);
-internal sealed record CreateJobRequest(Guid ProjectId, string ShortSlug, string Title, JobType Type, string Description);
-internal sealed record UpdateJobStatusRequest(JobStatus Status);
-internal sealed record JobResponse(Guid Id, Guid ProjectId, string ShortSlug, string Title, JobStatus Status, JobType Type, string Description, DateTime CreatedAt, IReadOnlyCollection<UserStorySummaryResponse>? UserStories);
-internal sealed record UserStorySummaryResponse(Guid Id, string Title, int Priority, bool IsComplete);
-internal sealed record UserStoryResponse(Guid Id, Guid JobId, string Title, string Who, string What, string Why, int Priority, bool IsComplete, DateTime CreatedAt, IReadOnlyCollection<AcceptanceCriteriaResponse>? AcceptanceCriterias, IReadOnlyCollection<ProgressLogResponse>? ProgressLogs);
-internal sealed record CreateUserStoryRequest(Guid JobId, string Title, string Who, string What, string Why, int Priority);
-internal sealed record UpdateUserStoryCompleteRequest(bool IsComplete);
-internal sealed record AcceptanceCriteriaResponse(Guid Id, Guid UserStoryId, string Description, bool IsMet);
-internal sealed record CreateAcceptanceCriteriaRequest(Guid UserStoryId, string Description);
-internal sealed record UpdateAcceptanceCriteriaRequest(bool IsMet);
-internal sealed record ProgressLogResponse(Guid Id, Guid UserStoryId, string Text, DateTime CreatedAt);
-internal sealed record CreateProgressLogRequest(Guid UserStoryId, string Text);
-
-internal enum JobStatus
-{
-    Todo,
-    InProgress,
-    Done
-}
-
-internal enum JobType
-{
-    Feature,
-    Fix,
-    Refactor,
-    Chore,
-    Fmt,
-    Doc
-}
-

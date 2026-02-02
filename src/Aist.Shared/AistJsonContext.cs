@@ -1,7 +1,8 @@
 using System.Text.Json.Serialization;
 
-namespace Aist.Cli.Services;
+namespace Aist.Shared;
 
+[JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
 [JsonSerializable(typeof(List<ProjectResponse>))]
 [JsonSerializable(typeof(ProjectResponse))]
 [JsonSerializable(typeof(CreateProjectRequest))]
@@ -10,6 +11,7 @@ namespace Aist.Cli.Services;
 [JsonSerializable(typeof(JobResponse))]
 [JsonSerializable(typeof(UserStorySummaryResponse))]
 [JsonSerializable(typeof(UpdateJobStatusRequest))]
+[JsonSerializable(typeof(UpdateJobRequest))]
 [JsonSerializable(typeof(List<UserStoryResponse>))]
 [JsonSerializable(typeof(UserStoryResponse))]
 [JsonSerializable(typeof(CreateUserStoryRequest))]
@@ -21,6 +23,6 @@ namespace Aist.Cli.Services;
 [JsonSerializable(typeof(List<ProgressLogResponse>))]
 [JsonSerializable(typeof(ProgressLogResponse))]
 [JsonSerializable(typeof(CreateProgressLogRequest))]
-internal sealed partial class AistJsonContext : JsonSerializerContext
+public partial class AistJsonContext : JsonSerializerContext
 {
 }

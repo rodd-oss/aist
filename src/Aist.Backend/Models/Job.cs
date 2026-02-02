@@ -1,3 +1,5 @@
+using Aist.Shared;
+
 namespace Aist.Backend.Models;
 
 public class Job
@@ -14,22 +16,5 @@ public class Job
     
     // Navigation
     public Project Project { get; set; } = null!;
-    public List<UserStory> UserStories { get; set; } = new();
-}
-
-public enum JobStatus
-{
-    Todo,
-    InProgress,
-    Done
-}
-
-public enum JobType
-{
-    Feature,
-    Fix,
-    Refactor,
-    Chore,
-    Fmt,
-    Doc
+    public List<UserStory> UserStories { get; set; } = [];
 }

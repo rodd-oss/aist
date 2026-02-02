@@ -1,6 +1,6 @@
 using Aist.Backend.Data;
-using Aist.Backend.Dtos;
 using Aist.Backend.Models;
+using Aist.Shared;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -108,7 +108,7 @@ public class JobsController : ControllerBase
     }
 
     [HttpPatch("{id}/status")]
-    public async Task<IActionResult> UpdateJobStatus(Guid id, JobStatusUpdateRequest request)
+    public async Task<IActionResult> UpdateJobStatus(Guid id, UpdateJobStatusRequest request)
     {
         var job = await _context.Jobs.FindAsync(id);
 
@@ -118,6 +118,26 @@ public class JobsController : ControllerBase
         }
 
         job.Status = request.Status;
+        await _context.SaveChangesAsync();
+
+        return NoContent();
+    }
+
+    [HttpPut("{id}")]
+    public async Task<IActionResult> UpdateJob(Guid id, UpdateJobRequest request)
+    {
+        var job = await _context.Jobs.FindAsync(id);
+
+        if (job == null)
+        {
+            return NotFound();
+        }
+
+        job.Title = request.Title;
+        job.Description = request.Description;
+        job.ShortSlug = request.ShortSlug;
+        job.Type = request.Type;
+
         await _context.SaveChangesAsync();
 
         return NoContent();

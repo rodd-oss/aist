@@ -14,6 +14,6 @@ public class UserStory
     
     // Navigation
     public Job Job { get; set; } = null!;
-    public List<AcceptanceCriteria> AcceptanceCriterias { get; set; } = new();
-    public List<ProgressLog> ProgressLogs { get; set; } = new();
+    public List<AcceptanceCriteria> AcceptanceCriterias { get; set; } = [];
+    public List<ProgressLog> ProgressLogs { get; set; } = [];
 }

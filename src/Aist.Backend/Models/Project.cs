@@ -8,5 +8,5 @@ public class Project
     public DateTime? DeletedAt { get; set; } // Soft delete
     
     // Navigation
-    public List<Job> Jobs { get; set; } = new();
+    public List<Job> Jobs { get; set; } = [];
 }
