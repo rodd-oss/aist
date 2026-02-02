@@ -3,7 +3,8 @@
 set -e
 
 REPO="rodd-oss/aist"
-INSTALL_DIR="/usr/local/bin"
+AIST_INSTALL="$HOME/.aist"
+BIN_DIR="$AIST_INSTALL/bin"
 CLI_NAME="aist"
 
 # Colors
@@ -96,37 +97,81 @@ download_and_install() {
     fi
 
     print_info "Extracting..."
-    cd "$TEMP_DIR"
-    tar -xzf "$FILENAME"
+    tar -xzf "${TEMP_DIR}/${FILENAME}" -C "$TEMP_DIR"
 
-    if [ ! -f "$CLI_NAME" ]; then
+    if [ ! -f "${TEMP_DIR}/${CLI_NAME}" ]; then
         print_error "Binary not found in archive"
         rm -rf "$TEMP_DIR"
         exit 1
     fi
 
-    chmod +x "$CLI_NAME"
+    chmod +x "${TEMP_DIR}/${CLI_NAME}"
 
-    # Check if we need sudo
-    if [ -w "$INSTALL_DIR" ]; then
-        mv "$CLI_NAME" "$INSTALL_DIR/"
-    else
-        print_info "Installing to $INSTALL_DIR (requires sudo)..."
-        sudo mv "$CLI_NAME" "$INSTALL_DIR/"
-    fi
+    # Ensure install directory exists
+    mkdir -p "$BIN_DIR"
+
+    # Install to bin directory
+    mv "${TEMP_DIR}/${CLI_NAME}" "$BIN_DIR/"
 
     rm -rf "$TEMP_DIR"
 
-    print_info "${CLI_NAME} ${version} installed successfully!"
+    print_info "${CLI_NAME} ${version} installed successfully to $BIN_DIR"
+}
+
+# Update shell configuration
+update_shell_config() {
+    local shell_name=$(basename "$SHELL")
+    local config_file=""
+    local export_cmd="export AIST_INSTALL=\"$AIST_INSTALL\""
+    local path_cmd="export PATH=\"\$AIST_INSTALL/bin:\$PATH\""
+    
+    case "$shell_name" in
+        bash)
+            if [ -f "$HOME/.bashrc" ]; then
+                config_file="$HOME/.bashrc"
+            elif [ -f "$HOME/.bash_profile" ]; then
+                config_file="$HOME/.bash_profile"
+            fi
+            ;;
+        zsh)
+            config_file="$HOME/.zshrc"
+            ;;
+        fish)
+            config_file="$HOME/.config/fish/config.fish"
+            export_cmd="set -gx AIST_INSTALL \"$AIST_INSTALL\""
+            path_cmd="set -gx PATH \"\$AIST_INSTALL/bin\" \$PATH"
+            ;;
+    esac
+
+    if [ -n "$config_file" ]; then
+        # Ensure the directory exists
+        mkdir -p "$(dirname "$config_file")"
+        # Create file if it doesn't exist
+        touch "$config_file"
+
+        if ! grep -q "AIST_INSTALL" "$config_file" 2>/dev/null; then
+            print_info "Adding AIST_INSTALL to $config_file..."
+            echo -e "\n# aist" >> "$config_file"
+            echo "$export_cmd" >> "$config_file"
+            echo "$path_cmd" >> "$config_file"
+            print_info "Please restart your terminal or run: source $config_file"
+        fi
+    else
+        print_warning "Could not automatically update shell config. Please add the following to your shell profile:"
+        echo "  $export_cmd"
+        echo "  $path_cmd"
+    fi
 }
 
 # Verify installation
 verify_installation() {
-    if command -v "$CLI_NAME" &> /dev/null; then
-        print_info "Installation verified:"
-        "$CLI_NAME" --version 2>/dev/null || print_warning "Could not get version"
+    local binary="$BIN_DIR/$CLI_NAME"
+    if [ -f "$binary" ]; then
+        print_info "Installation verified at $binary"
+        "$binary" --version 2>/dev/null || print_warning "Could not get version"
     else
-        print_warning "${CLI_NAME} is not in PATH. You may need to add $INSTALL_DIR to your PATH."
+        print_error "Installation failed - binary not found in $BIN_DIR"
+        exit 1
     fi
 }
 
@@ -144,6 +189,7 @@ main() {
 
     detect_platform
     download_and_install "$VERSION" "$RUNTIME"
+    update_shell_config
     verify_installation
 
     print_info "Installation complete! Run '${CLI_NAME} --help' to get started."
