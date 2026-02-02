@@ -1,7 +1,7 @@
 using System.CommandLine;
 using Aist.Cli.Services;
 using Aist.Cli.UI;
-using Aist.Shared;
+using Aist.Core;
 using Spectre.Console;
 
 namespace Aist.Cli;

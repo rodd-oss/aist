@@ -1,5 +1,5 @@
 using Aist.Backend.Data;
-using Aist.Shared;
+using Aist.Core;
 using Asp.Versioning;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;

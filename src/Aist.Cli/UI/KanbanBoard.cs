@@ -1,5 +1,5 @@
 using Aist.Cli.Services;
-using Aist.Shared;
+using Aist.Core;
 using Spectre.Console;
 using Spectre.Console.Rendering;
 using System.Text;

@@ -1,4 +1,4 @@
-namespace Aist.Shared;
+namespace Aist.Core;
 
 public enum JobStatus
 {

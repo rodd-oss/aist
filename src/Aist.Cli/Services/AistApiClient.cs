@@ -1,6 +1,6 @@
 using System.Net.Http.Json;
 using System.Text.Json;
-using Aist.Shared;
+using Aist.Core;
 
 namespace Aist.Cli.Services;
 

@@ -23,7 +23,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Aist.Shared\Aist.Shared.csproj" />
+    <ProjectReference Include="..\Aist.Core\Aist.Core.csproj" />
   </ItemGroup>
 
 </Project>

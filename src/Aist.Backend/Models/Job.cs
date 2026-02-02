@@ -1,4 +1,4 @@
-using Aist.Shared;
+using Aist.Core;
 
 namespace Aist.Backend.Models;
 

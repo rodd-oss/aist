@@ -1,4 +1,4 @@
-namespace Aist.Shared;
+namespace Aist.Core;
 
 public record ProjectResponse(Guid Id, string Title, DateTime CreatedAt);
 public record CreateProjectRequest(string Title);

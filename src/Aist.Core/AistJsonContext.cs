@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace Aist.Shared;
+namespace Aist.Core;
 
 [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
 [JsonSerializable(typeof(List<ProjectResponse>))]

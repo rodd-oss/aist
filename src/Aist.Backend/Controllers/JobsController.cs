@@ -1,6 +1,6 @@
 using Aist.Backend.Data;
 using Aist.Backend.Models;
-using Aist.Shared;
+using Aist.Core;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
