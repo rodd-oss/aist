@@ -57,16 +57,17 @@ jobs:
           if [[ "${{ matrix.runtime }}" == "linux-arm64" ]]; then
             # Install specific dependencies for ARM64 cross-linking
             sudo apt-get update
-            sudo apt-get install -y gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu zlib1g-dev:amd64
+            sudo apt-get install -y clang llvm gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu
             PUBLISH_ARGS="-p:CppCompilerAndLinker=clang -p:ObjCopyName=aarch64-linux-gnu-objcopy"
+          elif [[ "${{ matrix.os }}" == "ubuntu-latest" ]]; then
+            sudo apt-get update
+            sudo apt-get install -y clang zlib1g-dev
           fi
 
           dotnet publish ${{ env.PROJECT_PATH }} \
             -c Release \
             -r ${{ matrix.runtime }} \
             -p:PublishAot=true \
-            -p:PublishSingleFile=true \
-            -p:IncludeNativeLibrariesForSelfExtract=true \
             --self-contained \
             -o ./publish/${{ matrix.runtime }} \
             $PUBLISH_ARGS
@@ -76,7 +77,7 @@ jobs:
         run: |
           cd ./publish/${{ matrix.runtime }}
           # Determine binary name: prioritize CLI_NAME, then any executable file
-          if [ -x "${{ env.CLI_NAME }}" ]; then
+          if [ -f "${{ env.CLI_NAME }}" ] && [ -x "${{ env.CLI_NAME }}" ]; then
             BINARY_NAME="${{ env.CLI_NAME }}"
           else
             # Portable way to find an executable file in the current directory
@@ -99,14 +100,20 @@ jobs:
         shell: pwsh
         run: |
           cd ./publish/${{ matrix.runtime }}
-          $binary = Get-ChildItem -File | Where-Object { $_.Extension -eq ".exe" } | Select-Object -First 1
-          if ($null -eq $binary) {
-            Write-Error "Error: Native binary (.exe) not found in $(Get-Location)"
-            ls -R
-            exit 1
+          # Try known name first
+          if (Test-Path "${{ env.CLI_NAME }}.exe") {
+            $binaryName = "${{ env.CLI_NAME }}.exe"
+          } else {
+            $binary = Get-ChildItem -File | Where-Object { $_.Extension -eq ".exe" } | Select-Object -First 1
+            if ($null -eq $binary) {
+              Write-Error "Error: Native binary (.exe) not found in $(Get-Location)"
+              ls -R
+              exit 1
+            }
+            $binaryName = $binary.Name
           }
-          Write-Host "Found binary: $($binary.Name)"
-          Compress-Archive -Path $binary.Name -DestinationPath ../../${{ env.CLI_NAME }}-${{ matrix.runtime }}.zip
+          Write-Host "Found binary: $binaryName"
+          Compress-Archive -Path $binaryName -DestinationPath ../../${{ env.CLI_NAME }}-${{ matrix.runtime }}.zip
           cd ../..
           echo "ARTIFACT=${{ env.CLI_NAME }}-${{ matrix.runtime }}.zip" >> $env:GITHUB_ENV
       
@@ -145,7 +152,7 @@ jobs:
           echo "Version: $VERSION"
       
       - name: Create Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.get_version.outputs.VERSION }}
           name: Release ${{ steps.get_version.outputs.VERSION }}
