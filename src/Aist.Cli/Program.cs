@@ -19,8 +19,24 @@ internal sealed class Program
         rootCommand.AddCommand(CreateCriteriaCommands(apiClient));
         rootCommand.AddCommand(CreateLogCommands(apiClient));
         rootCommand.AddCommand(CreateUiCommand(apiClient));
+        rootCommand.AddCommand(CreateUpgradeCommand());
 
         return await rootCommand.InvokeAsync(args).ConfigureAwait(false);
+    }
+
+    private static Command CreateUpgradeCommand()
+    {
+        var upgradeCommand = new Command("upgrade", "Upgrade aist cli to the latest or specific version");
+        var versionOption = new Option<string?>("--version", "Specific version to upgrade to (e.g., v1.0.0)");
+        upgradeCommand.AddOption(versionOption);
+
+        upgradeCommand.SetHandler(async (string? version) =>
+        {
+            using var upgradeService = new UpgradeService();
+            await upgradeService.UpgradeAsync(version).ConfigureAwait(false);
+        }, versionOption);
+
+        return upgradeCommand;
     }
 
     private static Command CreateUiCommand(AistApiClient apiClient)

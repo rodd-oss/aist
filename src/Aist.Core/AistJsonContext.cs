@@ -23,6 +23,8 @@ namespace Aist.Core;
 [JsonSerializable(typeof(List<ProgressLogResponse>))]
 [JsonSerializable(typeof(ProgressLogResponse))]
 [JsonSerializable(typeof(CreateProgressLogRequest))]
+[JsonSerializable(typeof(GitHubRelease))]
+[JsonSerializable(typeof(IReadOnlyCollection<GitHubAsset>))]
 public partial class AistJsonContext : JsonSerializerContext
 {
 }

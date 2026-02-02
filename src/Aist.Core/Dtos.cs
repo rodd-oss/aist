@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace Aist.Core;
 
 public record ProjectResponse(Guid Id, string Title, DateTime CreatedAt);
@@ -60,3 +62,13 @@ public record UpdateAcceptanceCriteriaRequest(bool IsMet);
 
 public record ProgressLogResponse(Guid Id, Guid UserStoryId, string Text, DateTime CreatedAt);
 public record CreateProgressLogRequest(Guid UserStoryId, string Text);
+
+public record GitHubRelease(
+    [property: JsonPropertyName("tag_name")] string TagName,
+    [property: JsonPropertyName("name")] string Name,
+    [property: JsonPropertyName("body")] string Body,
+    [property: JsonPropertyName("assets")] IReadOnlyCollection<GitHubAsset> Assets);
+
+public record GitHubAsset(
+    [property: JsonPropertyName("name")] string Name,
+    [property: JsonPropertyName("browser_download_url")] Uri BrowserDownloadUrl);

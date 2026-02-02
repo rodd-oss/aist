@@ -45,6 +45,21 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
       
+      - name: Get version
+        id: get_version
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+          else
+            VERSION=${GITHUB_REF#refs/tags/}
+          fi
+          # Remove 'v' prefix if present for dotnet version compatibility
+          DOTNET_VERSION=${VERSION#v}
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          echo "DOTNET_VERSION=$DOTNET_VERSION" >> $GITHUB_OUTPUT
+          echo "Building version: $VERSION (dotnet: $DOTNET_VERSION)"
+
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
@@ -68,6 +83,7 @@ jobs:
             -c Release \
             -r ${{ matrix.runtime }} \
             -p:PublishAot=true \
+            -p:Version=${{ steps.get_version.outputs.DOTNET_VERSION }} \
             --self-contained \
             -o ./publish/${{ matrix.runtime }} \
             $PUBLISH_ARGS
