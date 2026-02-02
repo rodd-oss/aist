@@ -25,6 +25,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Aist.Core\Aist.Core.csproj" />
+    <ProjectReference Include="..\Aist.Tuist\Aist.Tuist.csproj" />
   </ItemGroup>
 
 </Project>
