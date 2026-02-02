@@ -179,11 +179,11 @@ internal sealed class KanbanBoard
         int dialogWidth = Math.Min(70, width - 4);
         
         // Measure content height dynamically using IRenderable interface
-        var options = new RenderOptions(AnsiConsole.Console.Profile.Capabilities, new Size(dialogWidth, height));
-        int dialogHeight = ((IRenderable)content).Measure(options, dialogWidth).Max + 4; // +4 for panel border and padding
+        var options = new RenderOptions(AnsiConsole.Console.Profile.Capabilities, new Size(width, height));
+        int dialogHeight = Math.Min(height, ((IRenderable)content).Measure(options, dialogWidth).Max + 4);
 
-        int left = (width - dialogWidth) / 2;
-        int top = (height - dialogHeight) / 2;
+        int left = Math.Max(0, (width - dialogWidth) / 2);
+        int top = Math.Max(0, (height - dialogHeight) / 2);
 
         var panel = new Panel(content)
         {
@@ -192,7 +192,8 @@ internal sealed class KanbanBoard
             Padding = new Padding(2, 1, 2, 1),
             Header = new PanelHeader($"[bold yellow] {_state.ToString().ToUpper()} [/]"),
             Expand = false,
-            Width = dialogWidth
+            Width = dialogWidth,
+            Height = dialogHeight
         };
 
         _buffer.Draw(panel, left, top, dialogWidth, dialogHeight);

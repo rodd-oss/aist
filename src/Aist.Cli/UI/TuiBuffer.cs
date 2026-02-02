@@ -65,11 +65,12 @@ internal sealed class TuiBuffer
                     currentX = x;
                 }
 
-                if (currentY >= _height) break;
+                if (currentY >= _height || (maxHeight.HasValue && (currentY - y) >= maxHeight.Value)) break;
+                if (currentY < 0) continue;
 
                 foreach (var c in parts[i])
                 {
-                    if (currentX < _width && currentX >= 0)
+                    if (currentX < _width && currentX >= 0 && (!maxWidth.HasValue || (currentX - x) < maxWidth.Value))
                     {
                         _frontBuffer[currentX + currentY * _width] = new TuiCell(c, segment.Style ?? Style.Plain);
                     }
