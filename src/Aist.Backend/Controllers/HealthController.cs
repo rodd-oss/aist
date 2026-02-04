@@ -6,7 +6,7 @@ namespace Aist.Backend.Controllers;
 [ApiController]
 [Route("api/health")]
 [SuppressMessage("Performance", "CA1812: Avoid uninstantiated internal classes", Justification = "Instantiated via DI")]
-internal sealed class HealthController : ControllerBase
+public sealed class HealthController : ControllerBase
 {
     [HttpGet]
     public IActionResult Get()

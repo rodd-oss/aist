@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Aist.Backend.Data;
 
 [SuppressMessage("Performance", "CA1812: Avoid uninstantiated internal classes", Justification = "Instantiated via DI")]
-internal sealed class AistDbContext : DbContext
+public sealed class AistDbContext : DbContext
 {
     public AistDbContext(DbContextOptions<AistDbContext> options) : base(options) { }
     

@@ -2,7 +2,6 @@
 @rendermode InteractiveServer
 @inject AistApiService Api
 @inject ILogger<Projects> Logger
-@inject IJSRuntime JS
 
 <div class="flex justify-between items-center mb-6">
     <h1 class="text-2xl font-bold text-gray-900">Projects</h1>
@@ -70,7 +69,7 @@ else
                 </div>
                 <div class="bg-gray-50 px-4 py-4 sm:px-6 flex justify-between items-center">
                     <a href="@NavigationRoutes.ProjectDetails(project.Id)" class="text-sm font-medium text-indigo-600 hover:text-indigo-500">View Details</a>
-                    <button @onclick="() => ConfirmDelete(project.Id)" class="text-sm font-medium text-red-600 hover:text-red-500">Delete</button>
+                    <button @onclick="() => HandleDelete(project.Id)" class="text-sm font-medium text-red-600 hover:text-red-500">Delete</button>
                 </div>
             </div>
         }
@@ -167,19 +166,12 @@ else
         }
     }
 
-    private async Task ConfirmDelete(Guid id)
+    private async Task HandleDelete(Guid id)
     {
         try
         {
-            var project = projects?.FirstOrDefault(p => p.Id == id);
-            var title = project?.Title ?? "this project";
-            var confirmed = await JS.InvokeAsync<bool>("confirm", $"Are you sure you want to delete '{title}'? This will also delete all associated jobs and user stories.");
-            
-            if (confirmed)
-            {
-                await Api.DeleteProjectAsync(id);
-                await LoadProjects();
-            }
+            await Api.DeleteProjectAsync(id);
+            await LoadProjects();
         }
         catch (Exception ex)
         {

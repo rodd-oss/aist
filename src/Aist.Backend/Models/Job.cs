@@ -2,7 +2,7 @@ using Aist.Core;
 
 namespace Aist.Backend.Models;
 
-internal sealed class Job
+public sealed class Job
 {
     public Guid Id { get; set; }
     public Guid ProjectId { get; set; }

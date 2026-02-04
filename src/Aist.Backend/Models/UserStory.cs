@@ -1,6 +1,6 @@
 namespace Aist.Backend.Models;
 
-internal sealed class UserStory
+public sealed class UserStory
 {
     public Guid Id { get; set; }
     public Guid JobId { get; set; }

@@ -12,7 +12,7 @@ namespace Aist.Backend.Controllers;
 [ApiVersion("1.0")]
 [Route("api/v{version:apiVersion}/[controller]")]
 [SuppressMessage("Performance", "CA1812: Avoid uninstantiated internal classes", Justification = "Instantiated via DI")]
-internal sealed class AcceptanceCriteriasController : ControllerBase
+public sealed class AcceptanceCriteriasController : ControllerBase
 {
     private readonly AistDbContext _context;
 

@@ -1,6 +1,6 @@
 namespace Aist.Backend.Models;
 
-internal sealed class Project
+public sealed class Project
 {
     public Guid Id { get; set; }
     public string Title { get; set; } = string.Empty;
