@@ -3,12 +3,15 @@ using System.Text.Json.Serialization;
 namespace Aist.Core;
 
 [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
+[JsonSerializable(typeof(Guid))]
+[JsonSerializable(typeof(DateTime))]
 [JsonSerializable(typeof(List<ProjectResponse>))]
 [JsonSerializable(typeof(ProjectResponse))]
 [JsonSerializable(typeof(CreateProjectRequest))]
 [JsonSerializable(typeof(CreateJobRequest))]
 [JsonSerializable(typeof(List<JobResponse>))]
 [JsonSerializable(typeof(JobResponse))]
+[JsonSerializable(typeof(List<UserStorySummaryResponse>))]
 [JsonSerializable(typeof(UserStorySummaryResponse))]
 [JsonSerializable(typeof(UpdateJobStatusRequest))]
 [JsonSerializable(typeof(UpdateJobRequest))]

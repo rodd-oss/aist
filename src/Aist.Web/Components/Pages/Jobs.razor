@@ -1,0 +1,87 @@
+@page "/jobs"
+@rendermode InteractiveServer
+@inject AistApiService Api
+
+<div class="mb-6">
+    <h1 class="text-2xl font-bold text-gray-900">All Jobs</h1>
+    <p class="text-sm text-gray-500">Overview of all active and pending work across all projects.</p>
+</div>
+
+@if (jobs == null)
+{
+    <div class="flex justify-center py-12">
+        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+    </div>
+}
+else if (!jobs.Any())
+{
+    <div class="text-center py-12 bg-white rounded-lg shadow">
+        <h3 class="mt-2 text-sm font-medium text-gray-900">No jobs found</h3>
+        <p class="mt-1 text-sm text-gray-500">Go to a project to create your first job.</p>
+        <div class="mt-6">
+            <a href="/projects" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700">
+                Go to Projects
+            </a>
+        </div>
+    </div>
+}
+else
+{
+    <div class="bg-white shadow overflow-hidden sm:rounded-md border border-gray-200">
+        <ul class="divide-y divide-gray-200">
+            @foreach (var job in jobs)
+            {
+                <li>
+                    <a href="/projects/@job.ProjectId" class="block hover:bg-gray-50 transition-colors">
+                        <div class="px-4 py-4 sm:px-6">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center">
+                                    <span class="text-xs font-mono text-gray-400 mr-2">@job.ShortSlug</span>
+                                    <p class="text-sm font-medium text-indigo-600 truncate">@job.Title</p>
+                                </div>
+                                <div class="ml-2 flex-shrink-0 flex">
+                                    <p class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full @GetStatusClass(job.Status)">
+                                        @job.Status
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="mt-2 sm:flex sm:justify-between">
+                                <div class="sm:flex">
+                                    <p class="flex items-center text-sm text-gray-500">
+                                        <svg class="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                                        </svg>
+                                        @job.Type
+                                    </p>
+                                </div>
+                                <div class="mt-2 flex items-center text-sm text-gray-500 sm:mt-0">
+                                    <svg class="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                    </svg>
+                                    <p>Created @job.CreatedAt.ToShortDateString()</p>
+                                </div>
+                            </div>
+                        </div>
+                    </a>
+                </li>
+            }
+        </ul>
+    </div>
+}
+
+@code {
+    private List<JobResponse>? jobs;
+
+    protected override async Task OnInitializedAsync()
+    {
+        jobs = await Api.GetJobsAsync();
+    }
+
+    private string GetStatusClass(JobStatus status) => status switch
+    {
+        JobStatus.Todo => "bg-gray-100 text-gray-800",
+        JobStatus.InProgress => "bg-blue-100 text-blue-800",
+        JobStatus.Done => "bg-green-100 text-green-800",
+        _ => "bg-gray-100 text-gray-800"
+    };
+}

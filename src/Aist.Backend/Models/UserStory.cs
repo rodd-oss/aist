@@ -1,6 +1,6 @@
 namespace Aist.Backend.Models;
 
-public class UserStory
+internal sealed class UserStory
 {
     public Guid Id { get; set; }
     public Guid JobId { get; set; }
@@ -14,6 +14,6 @@ public class UserStory
     
     // Navigation
     public Job Job { get; set; } = null!;
-    public List<AcceptanceCriteria> AcceptanceCriterias { get; set; } = [];
-    public List<ProgressLog> ProgressLogs { get; set; } = [];
+    public ICollection<AcceptanceCriteria> AcceptanceCriterias { get; } = new List<AcceptanceCriteria>();
+    public ICollection<ProgressLog> ProgressLogs { get; } = new List<ProgressLog>();
 }

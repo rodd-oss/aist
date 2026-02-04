@@ -1,6 +1,6 @@
 namespace Aist.Backend.Models;
 
-public class AcceptanceCriteria
+internal sealed class AcceptanceCriteria
 {
     public Guid Id { get; set; }
     public Guid UserStoryId { get; set; }

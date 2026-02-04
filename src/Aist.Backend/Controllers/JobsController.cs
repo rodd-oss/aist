@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Aist.Backend.Data;
 using Aist.Backend.Models;
 using Aist.Core;
@@ -10,7 +11,8 @@ namespace Aist.Backend.Controllers;
 [ApiController]
 [ApiVersion("1.0")]
 [Route("api/v{version:apiVersion}/[controller]")]
-public class JobsController : ControllerBase
+[SuppressMessage("Performance", "CA1812: Avoid uninstantiated internal classes", Justification = "Instantiated via DI")]
+internal sealed class JobsController : ControllerBase
 {
     private readonly AistDbContext _context;
 
@@ -40,7 +42,7 @@ public class JobsController : ControllerBase
                 j.Description,
                 j.CreatedAt,
                 null))
-            .ToListAsync();
+            .ToListAsync().ConfigureAwait(false);
 
         return Ok(jobs);
     }
@@ -53,7 +55,7 @@ public class JobsController : ControllerBase
                 .ThenInclude(us => us.AcceptanceCriterias)
             .Include(j => j.UserStories)
                 .ThenInclude(us => us.ProgressLogs)
-            .FirstOrDefaultAsync(j => j.Id == id);
+            .FirstOrDefaultAsync(j => j.Id == id).ConfigureAwait(false);
 
         if (job == null)
         {
@@ -77,6 +79,8 @@ public class JobsController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<JobResponse>> CreateJob(CreateJobRequest request)
     {
+        ArgumentNullException.ThrowIfNull(request);
+
         var job = new Job
         {
             Id = Guid.NewGuid(),
@@ -90,7 +94,7 @@ public class JobsController : ControllerBase
         };
 
         _context.Jobs.Add(job);
-        await _context.SaveChangesAsync();
+        await _context.SaveChangesAsync().ConfigureAwait(false);
 
         return CreatedAtAction(
             nameof(GetJob),
@@ -110,7 +114,9 @@ public class JobsController : ControllerBase
     [HttpPatch("{id}/status")]
     public async Task<IActionResult> UpdateJobStatus(Guid id, UpdateJobStatusRequest request)
     {
-        var job = await _context.Jobs.FindAsync(id);
+        ArgumentNullException.ThrowIfNull(request);
+
+        var job = await _context.Jobs.FindAsync(id).ConfigureAwait(false);
 
         if (job == null)
         {
@@ -118,7 +124,7 @@ public class JobsController : ControllerBase
         }
 
         job.Status = request.Status;
-        await _context.SaveChangesAsync();
+        await _context.SaveChangesAsync().ConfigureAwait(false);
 
         return NoContent();
     }
@@ -126,7 +132,9 @@ public class JobsController : ControllerBase
     [HttpPut("{id}")]
     public async Task<IActionResult> UpdateJob(Guid id, UpdateJobRequest request)
     {
-        var job = await _context.Jobs.FindAsync(id);
+        ArgumentNullException.ThrowIfNull(request);
+
+        var job = await _context.Jobs.FindAsync(id).ConfigureAwait(false);
 
         if (job == null)
         {
@@ -138,7 +146,7 @@ public class JobsController : ControllerBase
         job.ShortSlug = request.ShortSlug;
         job.Type = request.Type;
 
-        await _context.SaveChangesAsync();
+        await _context.SaveChangesAsync().ConfigureAwait(false);
 
         return NoContent();
     }
@@ -146,7 +154,7 @@ public class JobsController : ControllerBase
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteJob(Guid id)
     {
-        var job = await _context.Jobs.FindAsync(id);
+        var job = await _context.Jobs.FindAsync(id).ConfigureAwait(false);
 
         if (job == null)
         {
@@ -154,7 +162,7 @@ public class JobsController : ControllerBase
         }
 
         job.DeletedAt = DateTime.UtcNow;
-        await _context.SaveChangesAsync();
+        await _context.SaveChangesAsync().ConfigureAwait(false);
 
         return NoContent();
     }

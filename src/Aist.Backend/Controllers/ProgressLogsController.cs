@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Aist.Backend.Data;
 using Aist.Backend.Models;
 using Aist.Core;
@@ -10,7 +11,8 @@ namespace Aist.Backend.Controllers;
 [ApiController]
 [ApiVersion("1.0")]
 [Route("api/v{version:apiVersion}/[controller]")]
-public class ProgressLogsController : ControllerBase
+[SuppressMessage("Performance", "CA1812: Avoid uninstantiated internal classes", Justification = "Instantiated via DI")]
+internal sealed class ProgressLogsController : ControllerBase
 {
     private readonly AistDbContext _context;
 
@@ -26,7 +28,7 @@ public class ProgressLogsController : ControllerBase
             .Where(pl => pl.UserStoryId == storyId)
             .OrderByDescending(pl => pl.CreatedAt)
             .Select(pl => new ProgressLogResponse(pl.Id, pl.UserStoryId, pl.Text, pl.CreatedAt))
-            .ToListAsync();
+            .ToListAsync().ConfigureAwait(false);
 
         return Ok(logs);
     }
@@ -34,6 +36,8 @@ public class ProgressLogsController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<ProgressLogResponse>> CreateProgressLog(CreateProgressLogRequest request)
     {
+        ArgumentNullException.ThrowIfNull(request);
+
         var log = new ProgressLog
         {
             Id = Guid.NewGuid(),
@@ -43,7 +47,7 @@ public class ProgressLogsController : ControllerBase
         };
 
         _context.ProgressLogs.Add(log);
-        await _context.SaveChangesAsync();
+        await _context.SaveChangesAsync().ConfigureAwait(false);
 
         return CreatedAtAction(
             nameof(GetLogsByStory),

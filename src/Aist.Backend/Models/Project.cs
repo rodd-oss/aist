@@ -1,6 +1,6 @@
 namespace Aist.Backend.Models;
 
-public class Project
+internal sealed class Project
 {
     public Guid Id { get; set; }
     public string Title { get; set; } = string.Empty;
@@ -8,5 +8,5 @@ public class Project
     public DateTime? DeletedAt { get; set; } // Soft delete
     
     // Navigation
-    public List<Job> Jobs { get; set; } = [];
+    public ICollection<Job> Jobs { get; } = new List<Job>();
 }

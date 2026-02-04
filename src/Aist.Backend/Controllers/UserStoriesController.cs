@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Aist.Backend.Data;
 using Aist.Backend.Models;
 using Aist.Core;
@@ -10,7 +11,8 @@ namespace Aist.Backend.Controllers;
 [ApiController]
 [ApiVersion("1.0")]
 [Route("api/v{version:apiVersion}/[controller]")]
-public class UserStoriesController : ControllerBase
+[SuppressMessage("Performance", "CA1812: Avoid uninstantiated internal classes", Justification = "Instantiated via DI")]
+internal sealed class UserStoriesController : ControllerBase
 {
     private readonly AistDbContext _context;
 
@@ -39,7 +41,7 @@ public class UserStoriesController : ControllerBase
                 us.CreatedAt,
                 us.AcceptanceCriterias.Select(ac => new AcceptanceCriteriaResponse(ac.Id, ac.UserStoryId, ac.Description, ac.IsMet)).ToList(),
                 us.ProgressLogs.Select(pl => new ProgressLogResponse(pl.Id, pl.UserStoryId, pl.Text, pl.CreatedAt)).ToList()))
-            .ToListAsync();
+            .ToListAsync().ConfigureAwait(false);
 
         return Ok(stories);
     }
@@ -47,6 +49,8 @@ public class UserStoriesController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<UserStoryResponse>> CreateUserStory(CreateUserStoryRequest request)
     {
+        ArgumentNullException.ThrowIfNull(request);
+
         var story = new UserStory
         {
             Id = Guid.NewGuid(),
@@ -61,7 +65,7 @@ public class UserStoriesController : ControllerBase
         };
 
         _context.UserStories.Add(story);
-        await _context.SaveChangesAsync();
+        await _context.SaveChangesAsync().ConfigureAwait(false);
 
         return CreatedAtAction(
             nameof(GetStoriesByJob),
@@ -83,7 +87,9 @@ public class UserStoriesController : ControllerBase
     [HttpPatch("{id}/complete")]
     public async Task<IActionResult> UpdateStoryCompleteStatus(Guid id, UpdateUserStoryCompleteRequest request)
     {
-        var story = await _context.UserStories.FindAsync(id);
+        ArgumentNullException.ThrowIfNull(request);
+
+        var story = await _context.UserStories.FindAsync(id).ConfigureAwait(false);
 
         if (story == null)
         {
@@ -91,7 +97,7 @@ public class UserStoriesController : ControllerBase
         }
 
         story.IsComplete = request.IsComplete;
-        await _context.SaveChangesAsync();
+        await _context.SaveChangesAsync().ConfigureAwait(false);
 
         return NoContent();
     }

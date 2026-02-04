@@ -4,5 +4,6 @@
     <Project Path="src/Aist.Cli/Aist.Cli.csproj" />
     <Project Path="src/Aist.Core/Aist.Core.csproj" />
     <Project Path="src/Aist.Tuist/Aist.Tuist.csproj" />
+    <Project Path="src/Aist.Web/Aist.Web.csproj" />
   </Folder>
 </Solution>

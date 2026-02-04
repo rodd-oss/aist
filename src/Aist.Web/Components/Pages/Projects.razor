@@ -1,0 +1,190 @@
+@page "/projects"
+@rendermode InteractiveServer
+@inject AistApiService Api
+@inject ILogger<Projects> Logger
+@inject IJSRuntime JS
+
+<div class="flex justify-between items-center mb-6">
+    <h1 class="text-2xl font-bold text-gray-900">Projects</h1>
+    <button @onclick="ShowCreateForm" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none transition-colors">
+        <svg class="-ml-1 mr-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+        </svg>
+        New Project
+    </button>
+</div>
+
+@if (errorMessage != null)
+{
+    <div class="bg-red-50 border-l-4 border-red-400 p-4 mb-6">
+        <div class="flex">
+            <div class="flex-shrink-0">
+                <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                </svg>
+            </div>
+            <div class="ml-3">
+                <p class="text-sm text-red-700">@errorMessage</p>
+            </div>
+            <div class="ml-auto pl-3">
+                <div class="-mx-1.5 -my-1.5">
+                    <button @onclick="() => errorMessage = null" class="inline-flex bg-red-50 rounded-md p-1.5 text-red-500 hover:bg-red-100 focus:outline-none">
+                        <span class="sr-only">Dismiss</span>
+                        <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (projects == null)
+{
+    <div class="flex justify-center py-12">
+        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+    </div>
+}
+else if (!projects.Any())
+{
+    <div class="text-center py-12 bg-white rounded-lg shadow">
+        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+        </svg>
+        <h3 class="mt-2 text-sm font-medium text-gray-900">No projects</h3>
+        <p class="mt-1 text-sm text-gray-500">Get started by creating a new project.</p>
+    </div>
+}
+else
+{
+    <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        @foreach (var project in projects)
+        {
+            <div class="bg-white overflow-hidden shadow rounded-lg border border-gray-200 hover:shadow-md transition-shadow">
+                <div class="px-4 py-5 sm:p-6">
+                    <div class="flex justify-between items-start">
+                        <h3 class="text-lg leading-6 font-medium text-gray-900 truncate">@project.Title</h3>
+                        <span class="text-xs text-gray-500">@project.CreatedAt.ToShortDateString()</span>
+                    </div>
+                </div>
+                <div class="bg-gray-50 px-4 py-4 sm:px-6 flex justify-between items-center">
+                    <a href="@NavigationRoutes.ProjectDetails(project.Id)" class="text-sm font-medium text-indigo-600 hover:text-indigo-500">View Details</a>
+                    <button @onclick="() => ConfirmDelete(project.Id)" class="text-sm font-medium text-red-600 hover:text-red-500">Delete</button>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+@if (showModal)
+{
+    <div class="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4 bg-gray-500 bg-opacity-75">
+        <div class="bg-white rounded-lg shadow-xl max-w-lg w-full p-6">
+            <h3 class="text-lg font-bold text-gray-900 mb-4">Create New Project</h3>
+            <EditForm Model="formModel" OnValidSubmit="HandleCreateProject" class="space-y-4">
+                <DataAnnotationsValidator />
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Title</label>
+                    <InputText @bind-Value="formModel.Title" class="mt-1 block w-full border border-gray-300 rounded-md p-2" />
+                    <ValidationMessage For="@(() => formModel.Title)" class="text-red-500 text-xs mt-1" />
+                </div>
+                <div class="mt-6 flex justify-end gap-3">
+                    <button type="button" @onclick="CloseModal" disabled="@isSubmitting" class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50">
+                        Cancel
+                    </button>
+                    <button type="submit" disabled="@isSubmitting" class="inline-flex items-center px-4 py-2 bg-indigo-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50">
+                        @if (isSubmitting)
+                        {
+                            <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                        }
+                        Create
+                    </button>
+                </div>
+            </EditForm>
+        </div>
+    </div>
+}
+
+@code {
+    private List<ProjectResponse>? projects;
+    private bool showModal = false;
+    private bool isSubmitting = false;
+    private string? errorMessage;
+    private ProjectForm formModel = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try 
+        {
+            await LoadProjects();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to load projects");
+            errorMessage = "Could not load projects. Please ensure the backend is running.";
+        }
+    }
+
+    private async Task LoadProjects()
+    {
+        projects = await Api.GetProjectsAsync();
+    }
+
+    private void ShowCreateForm()
+    {
+        errorMessage = null;
+        formModel = new();
+        showModal = true;
+    }
+
+    private void CloseModal()
+    {
+        showModal = false;
+    }
+
+    private async Task HandleCreateProject()
+    {
+        isSubmitting = true;
+        errorMessage = null;
+        try
+        {
+            await Api.CreateProjectAsync(formModel.ToRequest());
+            showModal = false;
+            await LoadProjects();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error creating project");
+            errorMessage = $"Failed to create project: {ex.Message}";
+        }
+        finally
+        {
+            isSubmitting = false;
+        }
+    }
+
+    private async Task ConfirmDelete(Guid id)
+    {
+        try
+        {
+            var project = projects?.FirstOrDefault(p => p.Id == id);
+            var title = project?.Title ?? "this project";
+            var confirmed = await JS.InvokeAsync<bool>("confirm", $"Are you sure you want to delete '{title}'? This will also delete all associated jobs and user stories.");
+            
+            if (confirmed)
+            {
+                await Api.DeleteProjectAsync(id);
+                await LoadProjects();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error deleting project");
+            errorMessage = "Failed to delete project.";
+        }
+    }
+}

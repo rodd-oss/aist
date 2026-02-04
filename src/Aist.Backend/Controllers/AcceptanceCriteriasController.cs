@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Aist.Backend.Data;
 using Aist.Backend.Models;
 using Aist.Core;
@@ -10,7 +11,8 @@ namespace Aist.Backend.Controllers;
 [ApiController]
 [ApiVersion("1.0")]
 [Route("api/v{version:apiVersion}/[controller]")]
-public class AcceptanceCriteriasController : ControllerBase
+[SuppressMessage("Performance", "CA1812: Avoid uninstantiated internal classes", Justification = "Instantiated via DI")]
+internal sealed class AcceptanceCriteriasController : ControllerBase
 {
     private readonly AistDbContext _context;
 
@@ -25,7 +27,7 @@ public class AcceptanceCriteriasController : ControllerBase
         var criterias = await _context.AcceptanceCriterias
             .Where(ac => ac.UserStoryId == storyId)
             .Select(ac => new AcceptanceCriteriaResponse(ac.Id, ac.UserStoryId, ac.Description, ac.IsMet))
-            .ToListAsync();
+            .ToListAsync().ConfigureAwait(false);
 
         return Ok(criterias);
     }
@@ -33,6 +35,8 @@ public class AcceptanceCriteriasController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<AcceptanceCriteriaResponse>> CreateAcceptanceCriteria(CreateAcceptanceCriteriaRequest request)
     {
+        ArgumentNullException.ThrowIfNull(request);
+
         var criteria = new AcceptanceCriteria
         {
             Id = Guid.NewGuid(),
@@ -43,7 +47,7 @@ public class AcceptanceCriteriasController : ControllerBase
         };
 
         _context.AcceptanceCriterias.Add(criteria);
-        await _context.SaveChangesAsync();
+        await _context.SaveChangesAsync().ConfigureAwait(false);
 
         return CreatedAtAction(
             nameof(GetCriteriaByStory),
@@ -54,7 +58,9 @@ public class AcceptanceCriteriasController : ControllerBase
     [HttpPatch("{id}")]
     public async Task<IActionResult> UpdateAcceptanceCriteria(Guid id, UpdateAcceptanceCriteriaRequest request)
     {
-        var criteria = await _context.AcceptanceCriterias.FindAsync(id);
+        ArgumentNullException.ThrowIfNull(request);
+
+        var criteria = await _context.AcceptanceCriterias.FindAsync(id).ConfigureAwait(false);
 
         if (criteria == null)
         {
@@ -62,7 +68,7 @@ public class AcceptanceCriteriasController : ControllerBase
         }
 
         criteria.IsMet = request.IsMet;
-        await _context.SaveChangesAsync();
+        await _context.SaveChangesAsync().ConfigureAwait(false);
 
         return NoContent();
     }

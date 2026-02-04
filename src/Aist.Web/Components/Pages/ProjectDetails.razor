@@ -1,0 +1,406 @@
+@page "/projects/{Id:guid}"
+@rendermode InteractiveServer
+@inject AistApiService Api
+@inject ILogger<ProjectDetails> Logger
+
+@if (project == null)
+{
+    <div class="flex justify-center py-12">
+        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+    </div>
+}
+else
+{
+    <div class="flex flex-col h-full">
+        <nav class="flex mb-4" aria-label="Breadcrumb">
+            <ol class="flex items-center space-x-2 text-sm text-gray-500">
+                <li><a href="@NavigationRoutes.Projects" class="hover:text-indigo-600">Projects</a></li>
+                <li>
+                    <svg class="h-5 w-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+                    </svg>
+                </li>
+                <li class="font-medium text-gray-900">@project.Title</li>
+            </ol>
+        </nav>
+
+        @if (errorMessage != null)
+        {
+            <div class="bg-red-50 border-l-4 border-red-400 p-4 mb-6 flex justify-between items-center">
+                <p class="text-sm text-red-700">@errorMessage</p>
+                <button @onclick="() => errorMessage = null" class="text-red-500 hover:text-red-700 font-bold">×</button>
+            </div>
+        }
+
+        <div class="flex justify-between items-start mb-6">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900">@project.Title</h1>
+                <p class="text-sm text-gray-500">Created @project.CreatedAt.ToShortDateString()</p>
+            </div>
+            <button @onclick="() => showJobModal = true" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none transition-colors">
+                Add Job
+            </button>
+        </div>
+
+        <div class="flex-1 overflow-x-auto pb-4">
+            <JobKanban Jobs="jobs" OnJobClick="HandleJobClick" />
+        </div>
+    </div>
+}
+
+@if (selectedJob != null)
+{
+    <div class="fixed inset-0 overflow-hidden z-40" aria-labelledby="slide-over-title" role="dialog" aria-modal="true">
+        <div class="absolute inset-0 overflow-hidden">
+            <div class="absolute inset-0 bg-gray-500 bg-opacity-75 transition-opacity" @onclick="() => selectedJob = null"></div>
+            <div class="pointer-events-none fixed inset-y-0 right-0 flex max-w-full pl-10">
+                <div class="pointer-events-auto w-screen max-w-2xl">
+                    <div class="flex h-full flex-col overflow-y-scroll bg-white shadow-xl">
+                        <div class="px-4 py-6 sm:px-6 bg-indigo-700 text-white">
+                            <div class="flex items-start justify-between">
+                                <h2 class="text-xl font-bold leading-6" id="slide-over-title">
+                                    <span class="block text-xs font-mono text-indigo-200 mb-1">@selectedJob.ShortSlug</span>
+                                    @selectedJob.Title
+                                </h2>
+                                <div class="ml-3 flex h-7 items-center">
+                                    <button type="button" @onclick="() => selectedJob = null" class="rounded-md bg-indigo-700 text-indigo-200 hover:text-white focus:outline-none">
+                                        <span class="sr-only">Close panel</span>
+                                        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="mt-4 flex gap-2">
+                                <select @onchange="HandleStatusChange" class="bg-indigo-600 text-white text-xs border border-indigo-400 rounded px-2 py-1 focus:outline-none">
+                                    @foreach (var status in Enum.GetValues<JobStatus>())
+                                    {
+                                        <option value="@status" selected="@(selectedJob.Status == status)">@status</option>
+                                    }
+                                </select>
+                            </div>
+                        </div>
+                        <div class="relative flex-1 px-4 py-6 sm:px-6">
+                            <div class="mb-8">
+                                <h3 class="text-sm font-semibold text-gray-900 uppercase tracking-wider mb-2">Description</h3>
+                                <p class="text-sm text-gray-600 bg-gray-50 p-3 rounded">@selectedJob.Description</p>
+                            </div>
+
+                            <div>
+                                <div class="flex justify-between items-center mb-4">
+                                    <h3 class="text-sm font-semibold text-gray-900 uppercase tracking-wider">User Stories</h3>
+                                    <button @onclick="ShowAddStory" class="text-xs font-medium text-indigo-600 hover:text-indigo-500">+ Add Story</button>
+                                </div>
+                                
+                                <div class="space-y-4">
+                                    @if (selectedJobStories == null)
+                                    {
+                                        <div class="flex justify-center p-4"><div class="animate-spin h-5 w-5 border-b-2 border-indigo-600"></div></div>
+                                    }
+                                    else
+                                    {
+                                        @foreach (var story in selectedJobStories)
+                                        {
+                                            <div class="border rounded-lg p-4 @(story.IsComplete ? "bg-green-50 border-green-200" : "bg-white")">
+                                                <div class="flex items-start justify-between">
+                                                    <div class="flex-1">
+                                                        <h4 class="text-sm font-bold @(story.IsComplete ? "text-green-800 line-through" : "text-gray-900")">@story.Title</h4>
+                                                        <div class="mt-1 text-xs text-gray-500 italic">
+                                                            As a <span class="font-medium">@story.Who</span>, I want to <span class="font-medium">@story.What</span>, so that <span class="font-medium">@story.Why</span>.
+                                                        </div>
+                                                    </div>
+                                                    <input type="checkbox" checked="@story.IsComplete" @onchange="() => ToggleStory(story)" class="h-4 w-4 text-indigo-600 border-gray-300 rounded" />
+                                                </div>
+
+                                                @if (story.AcceptanceCriterias?.Any() == true)
+                                                {
+                                                    <div class="mt-4 ml-4">
+                                                        <h5 class="text-[10px] font-bold text-gray-400 uppercase mb-2">Acceptance Criteria</h5>
+                                                        <ul class="space-y-2">
+                                                            @foreach (var criteria in story.AcceptanceCriterias)
+                                                            {
+                                                                <li class="flex items-center text-xs @(criteria.IsMet ? "text-green-600" : "text-gray-600")">
+                                                                    <svg class="h-4 w-4 mr-2 @(criteria.IsMet ? "text-green-500" : "text-gray-300")" fill="currentColor" viewBox="0 0 20 20">
+                                                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                                                                    </svg>
+                                                                    @criteria.Description
+                                                                </li>
+                                                            }
+                                                        </ul>
+                                                    </div>
+                                                }
+                                            </div>
+                                        }
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (showJobModal)
+{
+    <div class="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4 bg-gray-500 bg-opacity-75">
+        <div class="bg-white rounded-lg shadow-xl max-w-lg w-full p-6">
+            <h3 class="text-lg font-bold text-gray-900 mb-4">Add New Job</h3>
+            <EditForm Model="jobForm" OnValidSubmit="HandleCreateJob" class="space-y-4">
+                <DataAnnotationsValidator />
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Short Slug</label>
+                        <InputText @bind-Value="jobForm.ShortSlug" class="mt-1 block w-full border border-gray-300 rounded-md p-2" placeholder="e.g. AUTH-1" />
+                        <ValidationMessage For="@(() => jobForm.ShortSlug)" class="text-red-500 text-xs mt-1" />
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Type</label>
+                        <InputSelect @bind-Value="jobForm.Type" class="mt-1 block w-full border border-gray-300 rounded-md p-2">
+                            @foreach (var type in Enum.GetValues<JobType>())
+                            {
+                                <option value="@type">@type</option>
+                            }
+                        </InputSelect>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Title</label>
+                    <InputText @bind-Value="jobForm.Title" class="mt-1 block w-full border border-gray-300 rounded-md p-2" />
+                    <ValidationMessage For="@(() => jobForm.Title)" class="text-red-500 text-xs mt-1" />
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Description</label>
+                    <InputTextArea @bind-Value="jobForm.Description" rows="3" class="mt-1 block w-full border border-gray-300 rounded-md p-2" />
+                    <ValidationMessage For="@(() => jobForm.Description)" class="text-red-500 text-xs mt-1" />
+                </div>
+                <div class="mt-6 flex justify-end gap-3">
+                    <button type="button" @onclick="() => showJobModal = false" disabled="@isSubmittingJob" class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50">
+                        Cancel
+                    </button>
+                    <button type="submit" disabled="@isSubmittingJob" class="inline-flex items-center px-4 py-2 bg-indigo-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50">
+                        @if (isSubmittingJob)
+                        {
+                            <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                        }
+                        Create
+                    </button>
+                </div>
+            </EditForm>
+        </div>
+    </div>
+}
+
+@if (showStoryModal)
+{
+    <div class="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4 bg-gray-500 bg-opacity-75">
+        <div class="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+            <h3 class="text-lg font-bold text-gray-900 mb-4">Add User Story</h3>
+            <EditForm Model="storyForm" OnValidSubmit="HandleAddStory" class="space-y-3">
+                <DataAnnotationsValidator />
+                <div>
+                    <label class="block text-xs font-medium text-gray-700">Title</label>
+                    <InputText @bind-Value="storyForm.Title" class="mt-1 block w-full border border-gray-300 rounded p-1 text-sm" />
+                    <ValidationMessage For="@(() => storyForm.Title)" class="text-red-500 text-[10px]" />
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700">Who</label>
+                        <InputText @bind-Value="storyForm.Who" class="mt-1 block w-full border border-gray-300 rounded p-1 text-sm" placeholder="As a..." />
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700">Priority</label>
+                        <InputNumber @bind-Value="storyForm.Priority" class="mt-1 block w-full border border-gray-300 rounded p-1 text-sm" />
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-700">What</label>
+                    <InputTextArea @bind-Value="storyForm.What" rows="2" class="mt-1 block w-full border border-gray-300 rounded p-1 text-sm" placeholder="I want to..." />
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-700">Why</label>
+                    <InputTextArea @bind-Value="storyForm.Why" rows="2" class="mt-1 block w-full border border-gray-300 rounded p-1 text-sm" placeholder="So that..." />
+                </div>
+                <div class="mt-6 flex justify-end gap-2">
+                    <button type="button" @onclick="() => showStoryModal = false" disabled="@isSubmittingStory" class="px-3 py-1 text-xs text-gray-600 bg-gray-100 rounded disabled:opacity-50">Cancel</button>
+                    <button type="submit" disabled="@isSubmittingStory" class="inline-flex items-center px-3 py-1 text-xs text-white bg-indigo-600 rounded disabled:opacity-50">
+                        @if (isSubmittingStory)
+                        {
+                            <svg class="animate-spin -ml-1 mr-1 h-3 w-3 text-white" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                        }
+                        Add
+                    </button>
+                </div>
+            </EditForm>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+    private ProjectResponse? project;
+    private List<JobResponse>? jobs;
+    
+    private JobResponse? selectedJob;
+    private List<UserStoryResponse>? selectedJobStories;
+    
+    private bool showJobModal = false;
+    private bool isSubmittingJob = false;
+    private JobForm jobForm = new();
+    
+    private bool showStoryModal = false;
+    private bool isSubmittingStory = false;
+    private StoryForm storyForm = new();
+
+    private string? errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            project = await Api.GetProjectAsync(Id);
+            jobs = await Api.GetJobsByProjectAsync(Id);
+            jobForm.ProjectId = Id;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to initialize project details");
+            errorMessage = "Failed to load project details.";
+        }
+    }
+
+    private async Task HandleJobClick(JobResponse job)
+    {
+        errorMessage = null;
+        selectedJob = job;
+        selectedJobStories = null;
+        try
+        {
+            selectedJobStories = await Api.GetStoriesByJobAsync(job.Id);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to load stories for job {JobId}", job.Id);
+            errorMessage = "Could not load stories for the selected job.";
+        }
+    }
+
+    private async Task HandleStatusChange(ChangeEventArgs e)
+    {
+        if (selectedJob != null && Enum.TryParse<JobStatus>(e.Value?.ToString(), out var newStatus))
+        {
+            errorMessage = null;
+            try
+            {
+                await Api.UpdateJobStatusAsync(selectedJob.Id, newStatus);
+                
+                // Update local state instead of full re-fetch
+                var jobInList = jobs?.FirstOrDefault(j => j.Id == selectedJob.Id);
+                if (jobInList != null)
+                {
+                    var updatedJob = jobInList with { Status = newStatus };
+                    var index = jobs!.IndexOf(jobInList);
+                    jobs[index] = updatedJob;
+                    selectedJob = updatedJob;
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Failed to update job status");
+                errorMessage = "Failed to update job status.";
+            }
+        }
+    }
+
+    private async Task HandleCreateJob()
+    {
+        isSubmittingJob = true;
+        errorMessage = null;
+        try
+        {
+            await Api.CreateJobAsync(jobForm.ToRequest());
+            showJobModal = false;
+            jobs = await Api.GetJobsByProjectAsync(Id);
+            jobForm = new JobForm { ProjectId = Id };
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error creating job");
+            errorMessage = $"Failed to create job: {ex.Message}";
+        }
+        finally
+        {
+            isSubmittingJob = false;
+        }
+    }
+
+    private void ShowAddStory()
+    {
+        if (selectedJob != null)
+        {
+            errorMessage = null;
+            storyForm = new StoryForm { JobId = selectedJob.Id };
+            showStoryModal = true;
+        }
+    }
+
+    private async Task HandleAddStory()
+    {
+        if (selectedJob != null)
+        {
+            isSubmittingStory = true;
+            errorMessage = null;
+            try
+            {
+                await Api.CreateStoryAsync(storyForm.ToRequest());
+                showStoryModal = false;
+                selectedJobStories = await Api.GetStoriesByJobAsync(selectedJob.Id);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error adding story");
+                errorMessage = $"Failed to add story: {ex.Message}";
+            }
+            finally
+            {
+                isSubmittingStory = false;
+            }
+        }
+    }
+
+    private async Task ToggleStory(UserStoryResponse story)
+    {
+        if (selectedJob != null)
+        {
+            errorMessage = null;
+            try
+            {
+                var newStatus = !story.IsComplete;
+                await Api.UpdateStoryCompleteAsync(story.Id, newStatus);
+                
+                // Update local state
+                if (selectedJobStories != null)
+                {
+                    var storyInList = selectedJobStories.FirstOrDefault(s => s.Id == story.Id);
+                    if (storyInList != null)
+                    {
+                        var index = selectedJobStories.IndexOf(storyInList);
+                        selectedJobStories[index] = storyInList with { IsComplete = newStatus };
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error toggling story completion");
+                errorMessage = "Failed to update story status.";
+            }
+        }
+    }
+}

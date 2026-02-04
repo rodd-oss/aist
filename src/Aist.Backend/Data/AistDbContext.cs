@@ -1,9 +1,11 @@
+using System.Diagnostics.CodeAnalysis;
 using Aist.Backend.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace Aist.Backend.Data;
 
-public class AistDbContext : DbContext
+[SuppressMessage("Performance", "CA1812: Avoid uninstantiated internal classes", Justification = "Instantiated via DI")]
+internal sealed class AistDbContext : DbContext
 {
     public AistDbContext(DbContextOptions<AistDbContext> options) : base(options) { }
     
@@ -15,6 +17,8 @@ public class AistDbContext : DbContext
     
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        ArgumentNullException.ThrowIfNull(modelBuilder);
+
         // Global query filter for soft deletes
         modelBuilder.Entity<Project>().HasQueryFilter(p => p.DeletedAt == null);
         modelBuilder.Entity<Job>().HasQueryFilter(j => j.DeletedAt == null);

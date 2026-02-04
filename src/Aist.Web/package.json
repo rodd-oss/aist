@@ -1,0 +1,9 @@
+{
+  "dependencies": {},
+  "devDependencies": {
+    "@unocss/cli": "^66.6.0",
+    "@unocss/preset-legacy-compat": "^66.6.0",
+    "@unocss/preset-wind4": "^66.6.0",
+    "unocss": "^66.6.0"
+  }
+}

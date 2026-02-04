@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Aist.Backend.Data;
 using Aist.Backend.Models;
 using Aist.Core;
@@ -10,7 +11,8 @@ namespace Aist.Backend.Controllers;
 [ApiController]
 [ApiVersion("1.0")]
 [Route("api/v{version:apiVersion}/[controller]")]
-public class ProjectsController : ControllerBase
+[SuppressMessage("Performance", "CA1812: Avoid uninstantiated internal classes", Justification = "Instantiated via DI")]
+internal sealed class ProjectsController : ControllerBase
 {
     private readonly AistDbContext _context;
 
@@ -24,7 +26,7 @@ public class ProjectsController : ControllerBase
     {
         var projects = await _context.Projects
             .Select(p => new ProjectResponse(p.Id, p.Title, p.CreatedAt))
-            .ToListAsync();
+            .ToListAsync().ConfigureAwait(false);
 
         return Ok(projects);
     }
@@ -32,7 +34,7 @@ public class ProjectsController : ControllerBase
     [HttpGet("{id}")]
     public async Task<ActionResult<ProjectResponse>> GetProject(Guid id)
     {
-        var project = await _context.Projects.FindAsync(id);
+        var project = await _context.Projects.FindAsync(id).ConfigureAwait(false);
         if (project == null)
         {
             return NotFound();
@@ -43,6 +45,8 @@ public class ProjectsController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<ProjectResponse>> CreateProject(CreateProjectRequest request)
     {
+        ArgumentNullException.ThrowIfNull(request);
+
         var project = new Project
         {
             Id = Guid.NewGuid(),
@@ -51,7 +55,7 @@ public class ProjectsController : ControllerBase
         };
 
         _context.Projects.Add(project);
-        await _context.SaveChangesAsync();
+        await _context.SaveChangesAsync().ConfigureAwait(false);
 
         return CreatedAtAction(
             nameof(GetProject),
@@ -62,7 +66,7 @@ public class ProjectsController : ControllerBase
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteProject(Guid id)
     {
-        var project = await _context.Projects.FindAsync(id);
+        var project = await _context.Projects.FindAsync(id).ConfigureAwait(false);
         
         if (project == null)
         {
@@ -70,7 +74,7 @@ public class ProjectsController : ControllerBase
         }
 
         project.DeletedAt = DateTime.UtcNow;
-        await _context.SaveChangesAsync();
+        await _context.SaveChangesAsync().ConfigureAwait(false);
 
         return NoContent();
     }

@@ -2,7 +2,7 @@ using Aist.Core;
 
 namespace Aist.Backend.Models;
 
-public class Job
+internal sealed class Job
 {
     public Guid Id { get; set; }
     public Guid ProjectId { get; set; }
@@ -16,5 +16,5 @@ public class Job
     
     // Navigation
     public Project Project { get; set; } = null!;
-    public List<UserStory> UserStories { get; set; } = [];
+    public ICollection<UserStory> UserStories { get; } = new List<UserStory>();
 }

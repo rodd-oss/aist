@@ -1,6 +1,6 @@
 namespace Aist.Backend.Models;
 
-public class ProgressLog
+internal sealed class ProgressLog
 {
     public Guid Id { get; set; }
     public Guid UserStoryId { get; set; }
